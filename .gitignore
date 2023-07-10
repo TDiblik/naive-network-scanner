@@ -1,18 +1,3 @@
-# ---- UI ---- #
-
-## ---- Svelte ---- ##
-/ui/.DS_Store
-/ui/node_modules
-/ui/build
-/ui/.svelte-kit
-/ui/package
-/ui/.env
-/ui/.env.*
-/ui/!.env.example
-/ui/vite.config.js.timestamp-*
-/ui/vite.config.ts.timestamp-*
-/ui/package-lock.json
-
-## ---- Cargo  ---- ##
-/ui/src-tauri/Cargo.lock
-/ui/src-tauri/target/
+# ---- Cargo  ---- #
+**/Cargo.lock
+**/target/

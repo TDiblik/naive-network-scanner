@@ -1,0 +1,61 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devPath": "http://localhost:5173",
+    "distDir": "../build",
+    "withGlobalTauri": false
+  },
+  "package": {
+    "productName": "TEEF",
+    "version": "0.0.1"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false
+    },
+    "bundle": {
+      "active": true,
+      "publisher": "Tomáš Diblík",
+      "identifier": "teef.tomasdiblik.cz",
+      "category": "DeveloperTool",
+      "shortDescription": "Tom's Enumeration and Exploitation Framework",
+      "copyright": "Copyright © 2023 Tomáš Diblík.",
+
+      "targets": "all",
+      "icon": ["icons/icon.png", "icons/icon.icns", "icons/icon.ico", "icons/StoreLogo.png"],
+
+      "macOS": {},
+      "resources": [],
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "wix": {
+          "language": "en-US"
+        }
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "updater": {
+      "active": false
+    },
+    "windows": [
+      {
+        "title": "TEEF",
+        "theme": "Dark",
+
+        "fullscreen": false,
+        "resizable": true,
+        "maximized": false,
+        "focus": true,
+        "decorations": true,
+
+        "width": 750,
+        "height": 650
+      }
+    ]
+  }
+}

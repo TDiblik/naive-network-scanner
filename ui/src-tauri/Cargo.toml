@@ -1,0 +1,27 @@
+[package]
+name = "teef-ui"
+version = "0.0.1"
+description = "Tom's Enumeration and Exploitation Framework"
+repository = "https://github.com/TDiblik/teef"
+authors = ["Tomáš Diblík <dibla.tomas@post.cz>"]
+edition = "2021"
+rust-version = "1.60"
+
+[profile.release]
+opt-level = 3
+strip = "symbols"
+lto = true
+
+[build-dependencies]
+tauri-build = { version = "1.4", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.4", features = [] }
+anyhow = "1.0"
+
+[features]
+# this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

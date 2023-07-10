@@ -13,6 +13,12 @@ strip = "symbols"
 lto = true
 
 [dependencies]
-eframe = "0.22"
+eframe = "0.22.0"
 egui_dock = "0.6.3"
-env_logger = "0.10.0"
+
+log = "0.4.19"
+log4rs = "1.2.0"
+
+home = "0.5.5"
+anyhow = "1.0.71"
+chrono = "0.4.26"

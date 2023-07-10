@@ -1,7 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+mod project_selector;
 mod utils;
 use eframe::egui;
+use log::debug;
+
+use crate::project_selector::ProjectSelectorWindoState;
 
 fn main() -> anyhow::Result<()> {
     utils::env::init()?;
@@ -9,18 +13,18 @@ fn main() -> anyhow::Result<()> {
     // TODO: Perform runtime checks
 
     // Open project selector
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(320.0, 240.0)),
-        ..Default::default()
-    };
-
-    // Open selected project
     eframe::run_native(
-        "My egui App",
-        options,
-        Box::new(|_cc| Box::<MyApp>::default()),
+        "TEEF - Project selector",
+        eframe::NativeOptions {
+            initial_window_size: Some(egui::vec2(550.0, 440.0)),
+            resizable: false,
+            ..Default::default()
+        },
+        Box::new(|_cc| Box::<ProjectSelectorWindoState>::default()),
     )
     .expect("Unable to render project selector.");
+
+    // Open selected project
 
     Ok(())
 }
@@ -55,4 +59,6 @@ impl eframe::App for MyApp {
             ui.label(format!("Hello '{}', age {}", self.name, self.age));
         });
     }
+
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {}
 }

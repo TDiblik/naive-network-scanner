@@ -13,7 +13,7 @@ strip = "symbols"
 lto = true
 
 [dependencies]
-eframe = "0.22.0"
+eframe = { version = "0.22.0", features = ["default_fonts"] }
 egui_dock = "0.6.3"
 
 log = "0.4.19"

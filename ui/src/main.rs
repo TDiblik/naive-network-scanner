@@ -1,5 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+#[macro_use]
+extern crate lazy_static;
+
 mod app;
 mod project_selector;
 mod utils;

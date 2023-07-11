@@ -1,7 +1,10 @@
 use eframe::egui;
-use egui_dock::{DockArea, TabViewer};
+use log::info;
 
 use super::{
+    network_topology::{
+        NetworkTopology, EGUI_GRAPH_SETTINGS_INTERACTIONS, EGUI_GRAPH_SETTINGS_NAVIGATION,
+    },
     workspace_models::{AppState, TabsContext, UIState, WorkspaceContext},
     workspace_tab::{default_tabs, WorkspaceTab},
 };
@@ -16,8 +19,7 @@ impl Default for Workspace {
         let tabs_context = default_tabs();
         let context = WorkspaceContext {
             app_state: AppState {
-                name: "Arthur".to_owned(),
-                age: 42,
+                network_topology: NetworkTopology::default(),
             },
             ui_state: UIState {
                 open_tabs: tabs_context.default_tabs.clone(),
@@ -76,7 +78,7 @@ impl eframe::App for Workspace {
 
                 let mut dock_style = egui_dock::Style::from_egui(ui.style());
                 dock_style.separator.extra = 50.0;
-                DockArea::new(&mut self.tabs_context.tab_tree)
+                egui_dock::DockArea::new(&mut self.tabs_context.tab_tree)
                     .show_close_buttons(true)
                     .show_add_buttons(false)
                     .draggable_tabs(true)
@@ -90,16 +92,17 @@ impl eframe::App for Workspace {
     // https://github.com/emilk/egui/blob/master/examples/confirm_exit/src/main.rs
 }
 
-impl TabViewer for WorkspaceContext {
+impl egui_dock::TabViewer for WorkspaceContext {
     type Tab = WorkspaceTab;
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         match tab.id.as_str() {
             "meta_tab" => self.render_meta_tab(ui),
+            "topology_overview_tab" => self.render_topology_overview_tab(ui),
             // "Simple Demo" => self.simple_demo(ui),
             // "Style Editor" => self.style_editor(ui),
             _ => {
-                ui.label(tab.title.clone());
+                ui.label("TODO");
             }
         }
     }
@@ -123,5 +126,22 @@ impl WorkspaceContext {
         ui.horizontal(|ui| {
             ui.button("abc");
         });
+    }
+
+    pub fn render_topology_overview_tab(&mut self, ui: &mut egui::Ui) {
+        ui.add(
+            &mut egui_graphs::GraphView::new(&mut self.app_state.network_topology.graph)
+                .with_interactions(&EGUI_GRAPH_SETTINGS_INTERACTIONS)
+                .with_navigations(&EGUI_GRAPH_SETTINGS_NAVIGATION)
+                .with_changes(&self.app_state.network_topology.graph_changes_sender),
+        );
+        for change in self
+            .app_state
+            .network_topology
+            .graph_changes_receiver
+            .try_iter()
+        {
+            info!("{:?}", change)
+        }
     }
 }

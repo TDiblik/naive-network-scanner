@@ -1,6 +1,6 @@
 use egui_dock::Tree;
 
-use super::workspace_tab::WorkspaceTab;
+use super::{network_topology::NetworkTopology, workspace_tab::WorkspaceTab};
 
 pub struct TabsContext {
     pub tab_tree: Tree<WorkspaceTab>,
@@ -13,8 +13,7 @@ pub struct WorkspaceContext {
 }
 
 pub struct AppState {
-    pub name: String,
-    pub age: u32,
+    pub network_topology: NetworkTopology,
 }
 
 pub struct UIState {

@@ -14,7 +14,10 @@ lto = true
 
 [dependencies]
 eframe = { version = "0.22.0", features = ["default_fonts"] }
+egui_extras = "0.22.0"
 egui_dock = "0.6.3"
+egui_graphs = "0.7.0"
+petgraph = "0.6.3"
 
 log = "0.4.19"
 log4rs = "1.2.0"
@@ -23,4 +26,6 @@ home = "0.5.5"
 anyhow = "1.0.71"
 chrono = "0.4.26"
 uuid = { version ="1.4.0", features = ["v4", "fast-rng"] }
-egui_extras = "0.22.0"
+lazy_static = "1.4.0"
+rand = "0.8.5"
+crossbeam = "0.8.2"

@@ -18,7 +18,6 @@ pub fn init() -> anyhow::Result<()> {
 
 #[cfg(not(debug_assertions))]
 pub fn init() -> anyhow::Result<()> {
-    use chrono::Local;
     use log4rs::{
         append::{console::Target, file::FileAppender},
         encode::pattern::PatternEncoder,

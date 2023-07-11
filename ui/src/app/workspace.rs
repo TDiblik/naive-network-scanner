@@ -1,22 +1,31 @@
 use eframe::egui;
 use egui_dock::{DockArea, TabViewer, Tree};
 
-use super::workspace_tab::{default_tab_tree, WorkspaceTab};
+use super::workspace_tab::{default_tabs, WorkspaceTab};
 
 pub struct Workspace {
     tab_tree: Tree<WorkspaceTab>,
+    default_tabs: Vec<WorkspaceTab>,
+
     context: WorkspaceContext,
 }
 
 impl Default for Workspace {
     fn default() -> Self {
-        let tab_tree = default_tab_tree();
+        let (tab_tree, default_tabs) = default_tabs();
         let context = WorkspaceContext {
             name: "Arthur".to_owned(),
             age: 42,
+            ui_context: UIContext {
+                open_tabs: default_tabs.clone(),
+            },
         };
 
-        Self { tab_tree, context }
+        Self {
+            tab_tree,
+            default_tabs,
+            context,
+        }
     }
 }
 
@@ -27,25 +36,36 @@ impl eframe::App for Workspace {
             .show(ctx, |ui| {
                 // TODO: Implement
                 egui::menu::bar(ui, |ui| {
-                    ui.menu_button("File", |ui| {});
+                    ui.menu_button("File", |ui| {
+                        ui.label("TODO");
+                    });
                     ui.menu_button("View", |ui| {
-                        // allow certain tabs to be toggled
-                        // for tab in &["File Browser", "Asset Manager"] {
-                        //     if ui
-                        //         .selectable_label(self.context.open_tabs.contains(*tab), *tab)
-                        //         .clicked()
-                        //     {
-                        //         if let Some(index) = self.tree.find_tab(&tab.to_string()) {
-                        //             self.tree.remove_tab(index);
-                        //             self.context.open_tabs.remove(*tab);
-                        //         } else {
-                        //             self.tree.push_to_focused_leaf(tab.to_string());
-                        //         }
+                        for default_tab in self.default_tabs.iter() {
+                            let open_tab_index = self
+                                .context
+                                .ui_context
+                                .open_tabs
+                                .iter()
+                                .position(|s| s.id == default_tab.id);
 
-                        //         ui.close_menu();
-                        //     }
-                        // }
-                        ui.selectable_label(true, "abc");
+                            if ui
+                                .selectable_label(
+                                    open_tab_index.is_some(),
+                                    default_tab.title.clone(),
+                                )
+                                .clicked()
+                            {
+                                if let Some(open_tab_index) = open_tab_index {
+                                    self.tab_tree
+                                        .remove_tab(self.tab_tree.find_tab(default_tab).unwrap());
+                                    self.context.ui_context.open_tabs.remove(open_tab_index);
+                                } else {
+                                    self.tab_tree.push_to_focused_leaf(default_tab.clone());
+                                    self.context.ui_context.open_tabs.push(default_tab.clone());
+                                }
+                                ui.close_menu();
+                            }
+                        }
                     });
                 });
 
@@ -64,6 +84,11 @@ impl eframe::App for Workspace {
 pub struct WorkspaceContext {
     name: String,
     age: u32,
+    ui_context: UIContext,
+}
+
+pub struct UIContext {
+    open_tabs: Vec<WorkspaceTab>,
 }
 
 impl TabViewer for WorkspaceContext {
@@ -84,7 +109,16 @@ impl TabViewer for WorkspaceContext {
     }
 
     fn on_close(&mut self, tab: &mut Self::Tab) -> bool {
-        // self.open_tabs.remove(tab);
+        let position_to_delete = self
+            .ui_context
+            .open_tabs
+            .iter()
+            .position(|s| s.id == tab.id);
+
+        if let Some(position_to_delet) = position_to_delete {
+            self.ui_context.open_tabs.remove(position_to_delet);
+        }
+
         true
     }
 }

@@ -44,9 +44,10 @@ pub fn default_tabs() -> TabsContext {
     .concat();
 
     let mut tab_tree = egui_dock::Tree::new(upper_tabs);
-    let [_, tabs_below] = tab_tree.split_below(egui_dock::NodeIndex::root(), 0.1, middle_left_tabs);
+    let [_, tabs_below] =
+        tab_tree.split_below(egui_dock::NodeIndex::root(), 0.055, middle_left_tabs);
     let [tabs_left, _] = tab_tree.split_right(tabs_below, 0.75, middle_right_tabs);
-    tab_tree.split_below(tabs_left, 0.85, bottom_tabs);
+    tab_tree.split_below(tabs_left, 0.875, bottom_tabs);
 
     TabsContext {
         tab_tree,

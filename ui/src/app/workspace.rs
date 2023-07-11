@@ -33,6 +33,7 @@ impl Default for Workspace {
 
 impl eframe::App for Workspace {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // TODO: Implement custom frame https://github.com/emilk/egui/tree/master/examples/custom_window_frame
         egui::CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.))
             .show(ctx, |ui| {
@@ -73,25 +74,28 @@ impl eframe::App for Workspace {
                     });
                 });
 
+                let mut dock_style = egui_dock::Style::from_egui(ui.style());
+                dock_style.separator.extra = 50.0;
                 DockArea::new(&mut self.tabs_context.tab_tree)
                     .show_close_buttons(true)
                     .show_add_buttons(false)
                     .draggable_tabs(true)
                     .show_tab_name_on_hover(false)
+                    .style(dock_style)
                     .show_inside(ui, &mut self.context);
             });
     }
 
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        // TODO: Ask to save state if newly serialized state != saved state
-    }
+    // TODO: Ask to save state if newly serialized state != saved state
+    // https://github.com/emilk/egui/blob/master/examples/confirm_exit/src/main.rs
 }
 
 impl TabViewer for WorkspaceContext {
     type Tab = WorkspaceTab;
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        match tab.id {
+        match tab.id.as_str() {
+            "meta_tab" => self.render_meta_tab(ui),
             // "Simple Demo" => self.simple_demo(ui),
             // "Style Editor" => self.style_editor(ui),
             _ => {
@@ -111,5 +115,13 @@ impl TabViewer for WorkspaceContext {
         }
 
         true
+    }
+}
+
+impl WorkspaceContext {
+    pub fn render_meta_tab(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.button("abc");
+        });
     }
 }

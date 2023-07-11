@@ -1,29 +1,31 @@
 use eframe::egui;
-use egui_dock::{DockArea, TabViewer, Tree};
+use egui_dock::{DockArea, TabViewer};
 
-use super::workspace_tab::{default_tabs, WorkspaceTab};
+use super::{
+    workspace_models::{AppState, TabsContext, UIState, WorkspaceContext},
+    workspace_tab::{default_tabs, WorkspaceTab},
+};
 
 pub struct Workspace {
-    tab_tree: Tree<WorkspaceTab>,
-    default_tabs: Vec<WorkspaceTab>,
-
+    tabs_context: TabsContext,
     context: WorkspaceContext,
 }
 
 impl Default for Workspace {
     fn default() -> Self {
-        let (tab_tree, default_tabs) = default_tabs();
+        let tabs_context = default_tabs();
         let context = WorkspaceContext {
-            name: "Arthur".to_owned(),
-            age: 42,
-            ui_context: UIContext {
-                open_tabs: default_tabs.clone(),
+            app_state: AppState {
+                name: "Arthur".to_owned(),
+                age: 42,
+            },
+            ui_state: UIState {
+                open_tabs: tabs_context.default_tabs.clone(),
             },
         };
 
         Self {
-            tab_tree,
-            default_tabs,
+            tabs_context,
             context,
         }
     }
@@ -34,16 +36,15 @@ impl eframe::App for Workspace {
         egui::CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.))
             .show(ctx, |ui| {
-                // TODO: Implement
                 egui::menu::bar(ui, |ui| {
                     ui.menu_button("File", |ui| {
-                        ui.label("TODO");
+                        ui.label("TODO: Implement project/state saving");
                     });
                     ui.menu_button("View", |ui| {
-                        for default_tab in self.default_tabs.iter() {
+                        for default_tab in self.tabs_context.default_tabs.iter() {
                             let open_tab_index = self
                                 .context
-                                .ui_context
+                                .ui_state
                                 .open_tabs
                                 .iter()
                                 .position(|s| s.id == default_tab.id);
@@ -56,12 +57,15 @@ impl eframe::App for Workspace {
                                 .clicked()
                             {
                                 if let Some(open_tab_index) = open_tab_index {
-                                    self.tab_tree
-                                        .remove_tab(self.tab_tree.find_tab(default_tab).unwrap());
-                                    self.context.ui_context.open_tabs.remove(open_tab_index);
+                                    self.tabs_context.tab_tree.remove_tab(
+                                        self.tabs_context.tab_tree.find_tab(default_tab).unwrap(),
+                                    );
+                                    self.context.ui_state.open_tabs.remove(open_tab_index);
                                 } else {
-                                    self.tab_tree.push_to_focused_leaf(default_tab.clone());
-                                    self.context.ui_context.open_tabs.push(default_tab.clone());
+                                    self.tabs_context
+                                        .tab_tree
+                                        .push_to_focused_leaf(default_tab.clone());
+                                    self.context.ui_state.open_tabs.push(default_tab.clone());
                                 }
                                 ui.close_menu();
                             }
@@ -69,7 +73,7 @@ impl eframe::App for Workspace {
                     });
                 });
 
-                DockArea::new(&mut self.tab_tree)
+                DockArea::new(&mut self.tabs_context.tab_tree)
                     .show_close_buttons(true)
                     .show_add_buttons(false)
                     .draggable_tabs(true)
@@ -78,17 +82,9 @@ impl eframe::App for Workspace {
             });
     }
 
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {}
-}
-
-pub struct WorkspaceContext {
-    name: String,
-    age: u32,
-    ui_context: UIContext,
-}
-
-pub struct UIContext {
-    open_tabs: Vec<WorkspaceTab>,
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        // TODO: Ask to save state if newly serialized state != saved state
+    }
 }
 
 impl TabViewer for WorkspaceContext {
@@ -109,14 +105,9 @@ impl TabViewer for WorkspaceContext {
     }
 
     fn on_close(&mut self, tab: &mut Self::Tab) -> bool {
-        let position_to_delete = self
-            .ui_context
-            .open_tabs
-            .iter()
-            .position(|s| s.id == tab.id);
-
-        if let Some(position_to_delet) = position_to_delete {
-            self.ui_context.open_tabs.remove(position_to_delet);
+        let position_to_delete = self.ui_state.open_tabs.iter().position(|s| s.id == tab.id);
+        if let Some(position_to_delete) = position_to_delete {
+            self.ui_state.open_tabs.remove(position_to_delete);
         }
 
         true

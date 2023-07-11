@@ -1,3 +1,5 @@
+use super::workspace_models::TabsContext;
+
 #[derive(Clone, PartialEq)]
 pub struct WorkspaceTab {
     pub id: String,
@@ -13,7 +15,7 @@ impl WorkspaceTab {
     }
 }
 
-pub fn default_tabs() -> (egui_dock::Tree<WorkspaceTab>, Vec<WorkspaceTab>) {
+pub fn default_tabs() -> TabsContext {
     let upper_tabs = vec![
         WorkspaceTab::new("meta_tab", "General"),
         WorkspaceTab::new("discovery_shared_tab", "Discovery"),
@@ -46,5 +48,8 @@ pub fn default_tabs() -> (egui_dock::Tree<WorkspaceTab>, Vec<WorkspaceTab>) {
     let [tabs_left, _] = tab_tree.split_right(tabs_below, 0.75, middle_right_tabs);
     tab_tree.split_below(tabs_left, 0.85, bottom_tabs);
 
-    (tab_tree, all_tabs)
+    TabsContext {
+        tab_tree,
+        default_tabs: all_tabs,
+    }
 }

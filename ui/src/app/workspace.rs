@@ -261,6 +261,11 @@ impl WorkspaceContext {
                         }
                     }
                     info!("Finished!");
+
+                    AppState::log_to_status_generic(
+                        &status_info_ref,
+                        "Finished ip scan".to_owned(),
+                    );
                 });
             }
         });

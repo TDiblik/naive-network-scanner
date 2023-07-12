@@ -11,6 +11,7 @@ use anyhow::anyhow;
 use app::workspace::Workspace;
 use eframe::egui;
 use log::error;
+use utils::constants::{WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH};
 
 fn main() -> anyhow::Result<()> {
     utils::env::init()?;
@@ -35,7 +36,7 @@ fn main() -> anyhow::Result<()> {
     let result = eframe::run_native(
         "TEEF - Workspace {ID}",
         eframe::NativeOptions {
-            initial_window_size: Some(egui::vec2(1250.0, 1080.0)),
+            initial_window_size: Some(egui::vec2(WORKSPACE_WINDOW_WIDTH, WORKSPACE_WINDOW_HEIGHT)),
             ..Default::default()
         },
         Box::new(|_cc| Box::<Workspace>::default()),

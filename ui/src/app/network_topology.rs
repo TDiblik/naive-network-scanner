@@ -8,6 +8,7 @@ use log::{info, warn};
 use petgraph::{stable_graph::StableGraph, visit::IntoNodeReferences, Directed};
 use rand::Rng;
 use std::net::IpAddr;
+use uuid::Uuid;
 
 lazy_static! {
     pub static ref EGUI_GRAPH_SETTINGS_STYLE: SettingsStyle =
@@ -26,21 +27,32 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub struct NetworkTopologyNode {
-    pub id: IpAddr, // ip serves as id, since you cannot have multiple in one network
+    pub id: Uuid,
+    pub ip: IpAddr,
+    pub notes: String,
     pub is_my_pc: bool,
 }
 impl NetworkTopologyNode {
-    pub fn new(ip: IpAddr) -> Self {
-        Self::new_internal(ip, false)
+    pub fn new(ip: IpAddr, notes: String) -> Self {
+        Self::new_internal(ip, notes, false)
     }
 
     pub fn new_my_pc() -> anyhow::Result<Self> {
         let my_local_ip = local_ip()?;
-        Ok(Self::new_internal(my_local_ip, true))
+        Ok(Self::new_internal(
+            my_local_ip,
+            "This is the current pc.".to_string(),
+            true,
+        ))
     }
 
-    fn new_internal(ip: IpAddr, is_my_pc: bool) -> Self {
-        Self { id: ip, is_my_pc }
+    fn new_internal(ip: IpAddr, notes: String, is_my_pc: bool) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            ip,
+            notes,
+            is_my_pc,
+        }
     }
 }
 
@@ -73,6 +85,7 @@ impl Default for NetworkTopology {
                 "192.168.0.1"
                     .parse()
                     .expect("Unable to parse valid ip 192.168.0.1"),
+                "".to_string(),
             ),
             Some(Vec2::new(-200.0, 0.0)),
         );
@@ -81,6 +94,7 @@ impl Default for NetworkTopology {
                 "192.168.0.2"
                     .parse()
                     .expect("Unable to parse valid ip 192.168.0.2"),
+                "".to_string(),
             ),
             Some(Vec2::new(0.0, -200.0)),
         );
@@ -89,6 +103,7 @@ impl Default for NetworkTopology {
                 "192.168.0.3"
                     .parse()
                     .expect("Unable to parse valid ip 192.168.0.3"),
+                "".to_string(),
             ),
             Some(Vec2::new(200.0, 0.0)),
         );
@@ -97,6 +112,7 @@ impl Default for NetworkTopology {
                 "192.168.0.4"
                     .parse()
                     .expect("Unable to parse valid ip 192.168.0.4"),
+                "".to_string(),
             ),
             Some(Vec2::new(0.0, 200.0)),
         );
@@ -124,7 +140,10 @@ impl Default for NetworkTopology {
 
         // TODO: Currentlly, egui_graph crashes for some reason, when I create new graph without nodes and then try to add some, so I decided to create dummy node. Try removing this line when it hits 1.0 / open issue / open PR. I don't want to deal with it rn.
         new_topology.add_node(
-            NetworkTopologyNode::new("0.0.0.0".parse().unwrap()),
+            NetworkTopologyNode::new(
+                "0.0.0.0".parse().expect("Unable to parse valid ip 0.0.0.0"),
+                "".to_string(),
+            ),
             Some(Vec2::new(0.0, 0.0)),
         );
 
@@ -141,7 +160,7 @@ impl NetworkTopology {
         ));
 
         let new_node = egui_graphs::Node::new(spawn_location, new_topology_node.clone())
-            .with_label(new_topology_node.id.to_string())
+            .with_label(new_topology_node.ip.to_string())
             .with_color(if new_topology_node.is_my_pc {
                 Color32::from_rgb(238, 108, 77) // TODO: Decide between (238, 108, 77) OR (152, 193, 217) OR (61, 90, 128)
             } else {

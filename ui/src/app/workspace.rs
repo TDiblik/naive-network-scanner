@@ -1,12 +1,19 @@
-use eframe::egui;
+use std::{net::IpAddr, str::FromStr};
+
+use eframe::{
+    egui,
+    epaint::{Color32, Vec2},
+};
 use log::info;
+
+use crate::utils::constants::ADD_NEW_PC_WINDOW_STARTING_POS;
 
 use super::{
     network_topology::{
         NetworkTopology, NetworkTopologyNode, EGUI_GRAPH_SETTINGS_INTERACTIONS,
         EGUI_GRAPH_SETTINGS_NAVIGATION, EGUI_GRAPH_SETTINGS_STYLE,
     },
-    workspace_models::{AppState, TabsContext, UIState, WorkspaceContext},
+    workspace_models::{AddNewPcWindowState, AppState, TabsContext, UIState, WorkspaceContext},
     workspace_tab::{default_tabs, WorkspaceTab},
 };
 
@@ -24,6 +31,7 @@ impl Default for Workspace {
             },
             ui_state: UIState {
                 open_tabs: tabs_context.default_tabs.clone(),
+                add_new_pc_window_state: AddNewPcWindowState::default(),
             },
         };
 
@@ -40,6 +48,7 @@ impl eframe::App for Workspace {
         egui::CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.))
             .show(ctx, |ui| {
+                // Top menu bars
                 egui::menu::bar(ui, |ui| {
                     ui.menu_button("File", |ui| {
                         ui.label("TODO: Implement project/state saving");
@@ -77,6 +86,69 @@ impl eframe::App for Workspace {
                     });
                 });
 
+                // Modal windows
+                let mut show_add_new_pc_window = self.context.ui_state.add_new_pc_window_state.open;
+                if show_add_new_pc_window {
+                    egui::Window::new("Manually add new PC")
+                        .collapsible(false)
+                        .default_pos(ADD_NEW_PC_WINDOW_STARTING_POS)
+                        .fixed_size(Vec2::new(250.0, 250.0))
+                        .open(&mut show_add_new_pc_window)
+                        .show(ctx, |ui| {
+                            ui.vertical_centered(|ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label("IP Address");
+                                    ui.text_edit_singleline(
+                                        &mut self.context.ui_state.add_new_pc_window_state.new_ip,
+                                    );
+                                });
+                                if self
+                                    .context
+                                    .ui_state
+                                    .add_new_pc_window_state
+                                    .new_ip_validation_err
+                                {
+                                    ui.colored_label(Color32::RED, "IP is not valid.");
+                                }
+                                ui.add_space(5.0);
+
+                                ui.vertical(|ui| {
+                                    ui.label("Notes");
+                                    ui.text_edit_multiline(
+                                        &mut self.context.ui_state.add_new_pc_window_state.notes,
+                                    );
+                                });
+                                ui.add_space(10.0);
+                                if ui.button("Add").clicked() {
+                                    if let Ok(new_ip) = IpAddr::from_str(
+                                        &self.context.ui_state.add_new_pc_window_state.new_ip,
+                                    ) {
+                                        self.context.app_state.network_topology.add_node(
+                                            NetworkTopologyNode::new(
+                                                new_ip,
+                                                self.context
+                                                    .ui_state
+                                                    .add_new_pc_window_state
+                                                    .notes
+                                                    .clone(),
+                                            ),
+                                            None,
+                                        );
+                                        self.context.ui_state.add_new_pc_window_state =
+                                            Default::default();
+                                    } else {
+                                        self.context
+                                            .ui_state
+                                            .add_new_pc_window_state
+                                            .new_ip_validation_err = true
+                                    }
+                                }
+                            });
+                        });
+                }
+                self.context.ui_state.add_new_pc_window_state.open &= show_add_new_pc_window;
+
+                // Docking
                 let mut dock_style = egui_dock::Style::from_egui(ui.style());
                 dock_style.separator.extra = 50.0;
                 egui_dock::DockArea::new(&mut self.tabs_context.tab_tree)
@@ -130,6 +202,10 @@ impl WorkspaceContext {
                 self.app_state
                     .network_topology
                     .add_node(NetworkTopologyNode::new_my_pc().unwrap(), None);
+                // TODO: Graph should re-zoom to fit all
+            }
+            if ui.button("Add new pc").clicked() {
+                self.ui_state.add_new_pc_window_state.open = true;
                 // TODO: Graph should re-zoom to fit all
             }
         });

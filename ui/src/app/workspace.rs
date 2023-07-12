@@ -44,6 +44,7 @@ impl eframe::App for Workspace {
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.))
             .show(ctx, |ui| {
                 // Top menu bars
+                // TODO: Refactor into separate file, so it does not polute workspace.rs
                 egui::menu::bar(ui, |ui| {
                     ui.menu_button("File", |ui| {
                         ui.label("TODO: Implement project/state saving");
@@ -187,9 +188,9 @@ impl WorkspaceContext {
                     let range_to_ping = ipnet::IpNet::from_str("192.168.0.0/24").unwrap();
                     for host in range_to_ping.hosts() {
                         if ping::ping(host, None, None, None, None, None).is_ok() {
-                            info!("{:?}", host);
+                            info!("Found: {:?}", host);
                         }
-                        info!("{:?}", host);
+                        info!("Testing: {:?}", host);
                     }
                     info!("Finished!");
                 });

@@ -16,7 +16,7 @@ lto = true
 eframe = { version = "0.22.0", features = ["default_fonts"] }
 egui_extras = "0.22.0"
 egui_dock = "0.6.3"
-egui_graphs = "0.7.0"
+egui_graphs = "0.7.1"
 petgraph = "0.6.3"
 
 log = "0.4.19"

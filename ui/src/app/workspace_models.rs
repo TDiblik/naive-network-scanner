@@ -1,6 +1,8 @@
+use super::{
+    modals::add_new_device_window::AddNewDeviceWindowState, network_topology::NetworkTopology,
+    workspace_tab::WorkspaceTab,
+};
 use egui_dock::Tree;
-
-use super::{network_topology::NetworkTopology, workspace_tab::WorkspaceTab};
 
 pub struct TabsContext {
     pub tab_tree: Tree<WorkspaceTab>,
@@ -19,12 +21,4 @@ pub struct AppState {
 pub struct UIState {
     pub open_tabs: Vec<WorkspaceTab>,
     pub add_new_device_window_state: AddNewDeviceWindowState,
-}
-
-#[derive(Default)]
-pub struct AddNewDeviceWindowState {
-    pub open: bool,
-    pub ip: String,
-    pub ip_validation_err: bool,
-    pub notes: String,
 }

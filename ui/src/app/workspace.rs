@@ -1,19 +1,14 @@
-use std::{net::IpAddr, str::FromStr};
-
-use eframe::{
-    egui,
-    epaint::{Color32, Vec2},
-};
+use eframe::egui;
 use log::info;
-
-use crate::utils::constants::ADD_NEW_DEVICE_WINDOW_STARTING_POS;
+use std::str::FromStr;
 
 use super::{
+    modals::add_new_device_window::AddNewDeviceWindowState,
     network_topology::{
         NetworkTopology, NetworkTopologyNode, EGUI_GRAPH_SETTINGS_INTERACTIONS,
         EGUI_GRAPH_SETTINGS_NAVIGATION, EGUI_GRAPH_SETTINGS_STYLE,
     },
-    workspace_models::{AddNewDeviceWindowState, AppState, TabsContext, UIState, WorkspaceContext},
+    workspace_models::{AppState, TabsContext, UIState, WorkspaceContext},
     workspace_tab::{default_tabs, WorkspaceTab},
 };
 
@@ -90,67 +85,11 @@ impl eframe::App for Workspace {
                 let mut show_add_new_device_window =
                     self.context.ui_state.add_new_device_window_state.open;
                 if show_add_new_device_window {
-                    egui::Window::new("Manually add a new device")
-                        .collapsible(false)
-                        .default_pos(ADD_NEW_DEVICE_WINDOW_STARTING_POS)
-                        .fixed_size(Vec2::new(275.0, 250.0))
-                        .open(&mut show_add_new_device_window)
-                        .show(ctx, |ui| {
-                            ui.vertical_centered(|ui| {
-                                ui.horizontal(|ui| {
-                                    ui.label("IP Address");
-                                    ui.text_edit_singleline(
-                                        &mut self.context.ui_state.add_new_device_window_state.ip,
-                                    );
-                                });
-                                if self
-                                    .context
-                                    .ui_state
-                                    .add_new_device_window_state
-                                    .ip_validation_err
-                                {
-                                    ui.colored_label(Color32::RED, "IP is not valid.");
-                                }
-                                ui.add_space(5.0);
-
-                                ui.vertical(|ui| {
-                                    ui.label("Notes");
-                                    ui.text_edit_multiline(
-                                        &mut self
-                                            .context
-                                            .ui_state
-                                            .add_new_device_window_state
-                                            .notes,
-                                    );
-                                });
-                                ui.add_space(10.0);
-                                if ui.button("Add").clicked() {
-                                    if let Ok(new_ip) = IpAddr::from_str(
-                                        &self.context.ui_state.add_new_device_window_state.ip,
-                                    ) {
-                                        self.context.app_state.network_topology.add_node(
-                                            NetworkTopologyNode::new(
-                                                new_ip,
-                                                self.context
-                                                    .ui_state
-                                                    .add_new_device_window_state
-                                                    .notes
-                                                    .clone(),
-                                            ),
-                                            None,
-                                        );
-                                        self.context.ui_state.add_new_device_window_state =
-                                            Default::default();
-                                        // TODO: Graph should re-zoom to fit all
-                                    } else {
-                                        self.context
-                                            .ui_state
-                                            .add_new_device_window_state
-                                            .ip_validation_err = true
-                                    }
-                                }
-                            });
-                        });
+                    AddNewDeviceWindowState::render(
+                        ctx,
+                        &mut show_add_new_device_window,
+                        &mut self.context,
+                    );
                 }
                 self.context.ui_state.add_new_device_window_state.open &=
                     show_add_new_device_window;

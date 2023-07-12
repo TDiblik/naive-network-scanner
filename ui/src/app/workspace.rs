@@ -1,6 +1,11 @@
 use eframe::egui;
-use log::info;
-use std::{str::FromStr, sync::Arc};
+use log::{info, warn};
+use petgraph::visit::IntoNodeReferences;
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
+use uuid::Uuid;
 
 use super::{
     modals::add_new_device_window::AddNewDeviceWindowState,
@@ -13,16 +18,20 @@ use super::{
 };
 
 pub struct Workspace {
+    // TODO: Allow dead code (id) for now, since I don't want to see the warning. Will be usefull in the future.
+    #[allow(dead_code)]
+    id: Uuid,
     tabs_context: TabsContext,
     context: WorkspaceContext,
 }
 
-impl Default for Workspace {
-    fn default() -> Self {
+impl Workspace {
+    pub fn new(id: Uuid) -> Self {
         let tabs_context = default_tabs();
         let context = WorkspaceContext {
             app_state: AppState {
                 network_topology: NetworkTopology::default(),
+                status_info: Arc::new(Mutex::new("".to_string())),
             },
             ui_state: UIState {
                 open_tabs: tabs_context.default_tabs.clone(),
@@ -30,7 +39,11 @@ impl Default for Workspace {
             },
         };
 
+        context
+            .app_state
+            .log_to_status(format!("Initialized new workspace {}!", id));
         Self {
+            id,
             tabs_context,
             context,
         }
@@ -121,6 +134,7 @@ impl egui_dock::TabViewer for WorkspaceContext {
             "meta_tab" => self.render_meta_tab(ui),
             "topology_overview_tab" => self.render_topology_overview_tab(ui),
             "discovery_inside_tab" => self.render_discovery_inside_tab(ui),
+            "status_tab" => self.render_status_tab(ui),
             // "Simple Demo" => self.simple_demo(ui),
             // "Style Editor" => self.style_editor(ui),
             _ => {
@@ -144,6 +158,8 @@ impl egui_dock::TabViewer for WorkspaceContext {
 }
 
 impl WorkspaceContext {
+    // TODO (chore): Order render functions by default alignment
+
     fn render_meta_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Add this computer").clicked() {
@@ -188,9 +204,23 @@ impl WorkspaceContext {
         ui.horizontal(|ui| {
             if ui.button("Scan IP Range").clicked() {
                 let mut graph_ref = Arc::clone(&self.app_state.network_topology.graph);
+                let status_info_ref = Arc::clone(&self.app_state.status_info);
                 std::thread::spawn(move || {
                     let range_to_ping = ipnet::IpNet::from_str("192.168.0.0/24").unwrap();
+                    dbg!(&range_to_ping.hosts());
+                    let first = range_to_ping.hosts().clone().next();
+                    let last = range_to_ping.hosts().last();
+                    AppState::log_to_status_generic(
+                        &status_info_ref,
+                        format!(
+                            "Starting ip scan from {} to {} ({})",
+                            first.unwrap(),
+                            last.unwrap(),
+                            range_to_ping
+                        ),
+                    );
                     for host in range_to_ping.hosts() {
+                        info!("Testing: {:?}", host);
                         if ping::ping(
                             host,
                             Some(std::time::Duration::from_millis(100)),
@@ -202,17 +232,41 @@ impl WorkspaceContext {
                         .is_ok()
                         {
                             info!("Found: {:?}", host);
+                            AppState::log_to_status_generic(
+                                &status_info_ref,
+                                format!("IP {} responded to ping", host),
+                            );
+
+                            // if let Some(existing_node) = graph_ref
+                            //     .clone()
+                            //     .lock()
+                            //     .unwrap()
+                            //     .node_references()
+                            //     .find(|s| s.1.data().unwrap().ip == host)
+                            // {
+                            //     graph_ref.lock().unwrap().add_edge(, b, weight)
+                            //     existing_node
+                            // } else {
+                            //     NetworkTopology::add_node_generic(
+                            //         &mut graph_ref,
+                            //         NetworkTopologyNode::new(host, "".to_string()),
+                            //         None,
+                            //     );
+                            // };
                             NetworkTopology::add_node_generic(
                                 &mut graph_ref,
                                 NetworkTopologyNode::new(host, "".to_string()),
                                 None,
                             );
                         }
-                        info!("Testing: {:?}", host);
                     }
                     info!("Finished!");
                 });
             }
         });
+    }
+
+    fn render_status_tab(&mut self, ui: &mut egui::Ui) {
+        ui.label(self.app_state.status_info.lock().unwrap().clone());
     }
 }

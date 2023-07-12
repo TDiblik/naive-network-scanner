@@ -165,7 +165,7 @@ impl NetworkTopology {
         graph: &mut NetworkTopologyGraph,
         new_topology_node: NetworkTopologyNode,
         location: Option<Vec2>,
-    ) {
+    ) -> petgraph::stable_graph::NodeIndex {
         let mut rng = rand::thread_rng(); // TODO: could be optimized ? Idk if it's creating a new instance every time :/
         let spawn_location = location.unwrap_or(Vec2::new(
             rng.gen_range(-200.0..200.0),
@@ -179,6 +179,7 @@ impl NetworkTopology {
             } else {
                 Color32::from_rgb(200, 200, 200)
             });
-        graph.lock().unwrap().add_node(new_node);
+
+        graph.lock().unwrap().add_node(new_node)
     }
 }

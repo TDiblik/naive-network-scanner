@@ -27,8 +27,8 @@ pub fn default_tabs() -> TabsContext {
         WorkspaceTab::new("cnc_overview_tab", "CnC Server"),
     ];
     let middle_right_tabs = vec![
-        WorkspaceTab::new("notes_tab", "Notes"),
         WorkspaceTab::new("status_tab", "Status Info"),
+        WorkspaceTab::new("notes_tab", "Notes"),
         WorkspaceTab::new("performed_steps_tab", "Performed steps"),
     ];
     let bottom_tabs = vec![

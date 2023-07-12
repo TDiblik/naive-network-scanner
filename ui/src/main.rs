@@ -33,13 +33,14 @@ fn main() -> anyhow::Result<()> {
     // )
     // .expect("Unable to render project selector.");
 
+    let new_id = uuid::Uuid::new_v4();
     let result = eframe::run_native(
-        "TEEF - Workspace {ID}",
+        &format!("TEEF - Workspace {}", new_id),
         eframe::NativeOptions {
             initial_window_size: Some(egui::vec2(WORKSPACE_WINDOW_WIDTH, WORKSPACE_WINDOW_HEIGHT)),
             ..Default::default()
         },
-        Box::new(|_cc| Box::<Workspace>::default()),
+        Box::new(move |_cc| Box::new(Workspace::new(new_id))),
     );
     if result.is_err() {
         error!("{:?}", result);

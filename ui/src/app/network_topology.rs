@@ -7,7 +7,10 @@ use local_ip_address::local_ip;
 use log::{info, warn};
 use petgraph::{stable_graph::StableGraph, visit::IntoNodeReferences, Directed};
 use rand::Rng;
-use std::net::IpAddr;
+use std::{
+    net::IpAddr,
+    sync::{Arc, Mutex},
+};
 use uuid::Uuid;
 
 lazy_static! {
@@ -56,7 +59,7 @@ impl NetworkTopologyNode {
     }
 }
 
-pub type NetworkTopologyGraph = Graph<NetworkTopologyNode, (), Directed>;
+pub type NetworkTopologyGraph = Arc<Mutex<Graph<NetworkTopologyNode, (), Directed>>>;
 pub struct NetworkTopology {
     pub graph: NetworkTopologyGraph,
     pub graph_changes_sender: Sender<Change>,
@@ -67,7 +70,7 @@ pub struct NetworkTopology {
 impl Default for NetworkTopology {
     fn default() -> Self {
         let graph_base: StableGraph<NetworkTopologyNode, ()> = StableGraph::default();
-        let graph = to_input_graph(&graph_base);
+        let graph = Arc::new(Mutex::new(to_input_graph(&graph_base)));
         let (graph_changes_sender, graph_changes_receiver) = unbounded();
         let mut new_topology = Self {
             graph,
@@ -118,6 +121,8 @@ impl Default for NetworkTopology {
         );
         new_topology
             .graph
+            .lock()
+            .unwrap()
             .node_references()
             .for_each(|s| info!("{:?}", s));
 
@@ -129,7 +134,7 @@ impl Default for NetworkTopology {
 impl Default for NetworkTopology {
     fn default() -> Self {
         let graph_base: StableGraph<NetworkTopologyNode, ()> = StableGraph::default();
-        let graph = to_input_graph(&graph_base);
+        let graph = Arc::new(Mutex::new(to_input_graph(&graph_base)));
 
         let (graph_changes_sender, graph_changes_receiver) = unbounded();
         let mut new_topology = Self {
@@ -153,6 +158,14 @@ impl Default for NetworkTopology {
 
 impl NetworkTopology {
     pub fn add_node(&mut self, new_topology_node: NetworkTopologyNode, location: Option<Vec2>) {
+        Self::add_node_generic(&mut self.graph, new_topology_node, location);
+    }
+
+    pub fn add_node_generic(
+        graph: &mut NetworkTopologyGraph,
+        new_topology_node: NetworkTopologyNode,
+        location: Option<Vec2>,
+    ) {
         let mut rng = rand::thread_rng(); // TODO: could be optimized ? Idk if it's creating a new instance every time :/
         let spawn_location = location.unwrap_or(Vec2::new(
             rng.gen_range(-200.0..200.0),
@@ -166,6 +179,6 @@ impl NetworkTopology {
             } else {
                 Color32::from_rgb(200, 200, 200)
             });
-        self.graph.add_node(new_node);
+        graph.lock().unwrap().add_node(new_node);
     }
 }

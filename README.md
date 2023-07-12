@@ -4,3 +4,8 @@
 
 - Cleanup useless packages that are not used anywhere.
 - Set UI mode to `reactive`
+
+# Dev
+
+Development: `cargo watch +x r` <br/>
+Release: `cargo b --release`

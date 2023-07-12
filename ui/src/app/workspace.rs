@@ -1,6 +1,6 @@
 use eframe::egui;
 use log::info;
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use super::{
     modals::add_new_device_window::AddNewDeviceWindowState,
@@ -161,11 +161,13 @@ impl WorkspaceContext {
 
     fn render_topology_overview_tab(&mut self, ui: &mut egui::Ui) {
         ui.add(
-            &mut egui_graphs::GraphView::new(&mut self.app_state.network_topology.graph)
-                .with_styles(&EGUI_GRAPH_SETTINGS_STYLE)
-                .with_interactions(&EGUI_GRAPH_SETTINGS_INTERACTIONS)
-                .with_navigations(&EGUI_GRAPH_SETTINGS_NAVIGATION)
-                .with_changes(&self.app_state.network_topology.graph_changes_sender),
+            &mut egui_graphs::GraphView::new(
+                &mut self.app_state.network_topology.graph.lock().unwrap(),
+            )
+            .with_styles(&EGUI_GRAPH_SETTINGS_STYLE)
+            .with_interactions(&EGUI_GRAPH_SETTINGS_INTERACTIONS)
+            .with_navigations(&EGUI_GRAPH_SETTINGS_NAVIGATION)
+            .with_changes(&self.app_state.network_topology.graph_changes_sender),
         );
         for change in self
             .app_state
@@ -175,7 +177,8 @@ impl WorkspaceContext {
         {
             let egui_graphs::Change::Node(node) = change else { continue; };
             let egui_graphs::ChangeNode::Clicked { id: node_id } = node else { continue; };
-            let Some(node) = self.app_state.network_topology.graph.node_weight(node_id) else { continue; };
+            let graph_lock = self.app_state.network_topology.graph.lock().unwrap();
+            let Some(node) = graph_lock.node_weight(node_id) else { continue; };
             // TODO: Open windows with device and it's settings.
             info!("{:?}", node)
         }
@@ -184,11 +187,26 @@ impl WorkspaceContext {
     fn render_discovery_inside_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Scan IP Range").clicked() {
+                let mut graph_ref = Arc::clone(&self.app_state.network_topology.graph);
                 std::thread::spawn(move || {
                     let range_to_ping = ipnet::IpNet::from_str("192.168.0.0/24").unwrap();
                     for host in range_to_ping.hosts() {
-                        if ping::ping(host, None, None, None, None, None).is_ok() {
+                        if ping::ping(
+                            host,
+                            Some(std::time::Duration::from_millis(100)),
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                        .is_ok()
+                        {
                             info!("Found: {:?}", host);
+                            NetworkTopology::add_node_generic(
+                                &mut graph_ref,
+                                NetworkTopologyNode::new(host, "".to_string()),
+                                None,
+                            );
                         }
                         info!("Testing: {:?}", host);
                     }

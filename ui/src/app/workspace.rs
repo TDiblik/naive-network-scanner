@@ -3,7 +3,8 @@ use log::info;
 
 use super::{
     network_topology::{
-        NetworkTopology, EGUI_GRAPH_SETTINGS_INTERACTIONS, EGUI_GRAPH_SETTINGS_NAVIGATION,
+        NetworkTopology, NetworkTopologyNode, EGUI_GRAPH_SETTINGS_INTERACTIONS,
+        EGUI_GRAPH_SETTINGS_NAVIGATION, EGUI_GRAPH_SETTINGS_STYLE,
     },
     workspace_models::{AppState, TabsContext, UIState, WorkspaceContext},
     workspace_tab::{default_tabs, WorkspaceTab},
@@ -97,6 +98,7 @@ impl egui_dock::TabViewer for WorkspaceContext {
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         match tab.id.as_str() {
+            // TODO (chore): Order by default alignment
             "meta_tab" => self.render_meta_tab(ui),
             "topology_overview_tab" => self.render_topology_overview_tab(ui),
             // "Simple Demo" => self.simple_demo(ui),
@@ -124,13 +126,19 @@ impl egui_dock::TabViewer for WorkspaceContext {
 impl WorkspaceContext {
     pub fn render_meta_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.button("abc");
+            if ui.button("Add my computer").clicked() {
+                self.app_state
+                    .network_topology
+                    .add_node(NetworkTopologyNode::new_my_pc().unwrap(), None);
+                // TODO: Graph should re-zoom to fit all
+            }
         });
     }
 
     pub fn render_topology_overview_tab(&mut self, ui: &mut egui::Ui) {
         ui.add(
             &mut egui_graphs::GraphView::new(&mut self.app_state.network_topology.graph)
+                .with_styles(&EGUI_GRAPH_SETTINGS_STYLE)
                 .with_interactions(&EGUI_GRAPH_SETTINGS_INTERACTIONS)
                 .with_navigations(&EGUI_GRAPH_SETTINGS_NAVIGATION)
                 .with_changes(&self.app_state.network_topology.graph_changes_sender),

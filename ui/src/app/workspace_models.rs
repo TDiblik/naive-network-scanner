@@ -18,13 +18,13 @@ pub struct AppState {
 
 pub struct UIState {
     pub open_tabs: Vec<WorkspaceTab>,
-    pub add_new_pc_window_state: AddNewPcWindowState,
+    pub add_new_device_window_state: AddNewDeviceWindowState,
 }
 
 #[derive(Default)]
-pub struct AddNewPcWindowState {
+pub struct AddNewDeviceWindowState {
     pub open: bool,
-    pub new_ip: String,
-    pub new_ip_validation_err: bool,
+    pub ip: String,
+    pub ip_validation_err: bool,
     pub notes: String,
 }

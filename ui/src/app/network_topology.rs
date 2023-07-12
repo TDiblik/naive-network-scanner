@@ -30,7 +30,7 @@ pub struct NetworkTopologyNode {
     pub id: Uuid,
     pub ip: IpAddr,
     pub notes: String,
-    pub is_my_pc: bool,
+    pub is_localhost: bool, // True => node is a machine that's running this program
 }
 impl NetworkTopologyNode {
     pub fn new(ip: IpAddr, notes: String) -> Self {
@@ -46,12 +46,12 @@ impl NetworkTopologyNode {
         ))
     }
 
-    fn new_internal(ip: IpAddr, notes: String, is_my_pc: bool) -> Self {
+    fn new_internal(ip: IpAddr, notes: String, is_localhost: bool) -> Self {
         Self {
             id: Uuid::new_v4(),
             ip,
             notes,
-            is_my_pc,
+            is_localhost,
         }
     }
 }
@@ -161,7 +161,7 @@ impl NetworkTopology {
 
         let new_node = egui_graphs::Node::new(spawn_location, new_topology_node.clone())
             .with_label(new_topology_node.ip.to_string())
-            .with_color(if new_topology_node.is_my_pc {
+            .with_color(if new_topology_node.is_localhost {
                 Color32::from_rgb(238, 108, 77) // TODO: Decide between (238, 108, 77) OR (152, 193, 217) OR (61, 90, 128)
             } else {
                 Color32::from_rgb(200, 200, 200)

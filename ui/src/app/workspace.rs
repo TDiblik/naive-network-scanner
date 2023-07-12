@@ -90,10 +90,10 @@ impl eframe::App for Workspace {
                 let mut show_add_new_device_window =
                     self.context.ui_state.add_new_device_window_state.open;
                 if show_add_new_device_window {
-                    egui::Window::new("Manually add new device")
+                    egui::Window::new("Manually add a new device")
                         .collapsible(false)
                         .default_pos(ADD_NEW_DEVICE_WINDOW_STARTING_POS)
-                        .fixed_size(Vec2::new(250.0, 250.0))
+                        .fixed_size(Vec2::new(275.0, 250.0))
                         .open(&mut show_add_new_device_window)
                         .show(ctx, |ui| {
                             ui.vertical_centered(|ui| {
@@ -180,6 +180,7 @@ impl egui_dock::TabViewer for WorkspaceContext {
             // TODO (chore): Order by default alignment
             "meta_tab" => self.render_meta_tab(ui),
             "topology_overview_tab" => self.render_topology_overview_tab(ui),
+            "discovery_inside_tab" => self.render_discovery_inside_tab(ui),
             // "Simple Demo" => self.simple_demo(ui),
             // "Style Editor" => self.style_editor(ui),
             _ => {
@@ -203,7 +204,7 @@ impl egui_dock::TabViewer for WorkspaceContext {
 }
 
 impl WorkspaceContext {
-    pub fn render_meta_tab(&mut self, ui: &mut egui::Ui) {
+    fn render_meta_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Add this computer").clicked() {
                 self.app_state
@@ -218,7 +219,7 @@ impl WorkspaceContext {
         });
     }
 
-    pub fn render_topology_overview_tab(&mut self, ui: &mut egui::Ui) {
+    fn render_topology_overview_tab(&mut self, ui: &mut egui::Ui) {
         ui.add(
             &mut egui_graphs::GraphView::new(&mut self.app_state.network_topology.graph)
                 .with_styles(&EGUI_GRAPH_SETTINGS_STYLE)
@@ -232,7 +233,28 @@ impl WorkspaceContext {
             .graph_changes_receiver
             .try_iter()
         {
-            info!("{:?}", change)
+            let egui_graphs::Change::Node(node) = change else { continue; };
+            let egui_graphs::ChangeNode::Clicked { id: node_id } = node else { continue; };
+            let Some(node) = self.app_state.network_topology.graph.node_weight(node_id) else { continue; };
+            // TODO: Open windows with device and it's settings.
+            info!("{:?}", node)
         }
+    }
+
+    fn render_discovery_inside_tab(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("Scan IP Range").clicked() {
+                std::thread::spawn(move || {
+                    let range_to_ping = ipnet::IpNet::from_str("192.168.0.0/24").unwrap();
+                    for host in range_to_ping.hosts() {
+                        if ping::ping(host, None, None, None, None, None).is_ok() {
+                            info!("{:?}", host);
+                        }
+                        info!("{:?}", host);
+                    }
+                    info!("Finished!");
+                });
+            }
+        });
     }
 }

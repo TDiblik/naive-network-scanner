@@ -23,16 +23,17 @@ pub struct AddNewDeviceWindowState {
 }
 
 impl AddNewDeviceWindowState {
-    pub fn render(
-        egui_context: &egui::Context,
-        open_window_ref: &mut bool,
-        app_context: &mut WorkspaceContext,
-    ) {
+    pub fn render(egui_context: &egui::Context, app_context: &mut WorkspaceContext) {
+        let mut show_show_window = app_context.ui_state.add_new_device_window_state.open;
+        if !show_show_window {
+            return;
+        }
+
         egui::Window::new("Manually add a new device")
             .collapsible(false)
             .default_pos(ADD_NEW_DEVICE_WINDOW_STARTING_POS)
             .fixed_size(Vec2::new(275.0, 250.0))
-            .open(open_window_ref)
+            .open(&mut show_show_window)
             .show(egui_context, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.horizontal(|ui| {
@@ -83,5 +84,7 @@ impl AddNewDeviceWindowState {
                     }
                 });
             });
+
+        app_context.ui_state.add_new_device_window_state.open &= show_show_window;
     }
 }

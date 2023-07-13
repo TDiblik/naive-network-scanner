@@ -18,9 +18,10 @@ impl WorkspaceTab {
 pub fn default_tabs() -> TabsContext {
     let upper_tabs = vec![
         WorkspaceTab::new("meta_tab", "General"),
+        WorkspaceTab::new("upload_tab", "Upload"),
         WorkspaceTab::new("discovery_shared_tab", "Discovery"),
-        WorkspaceTab::new("discovery_outside_tab", "Discovery (outside network)"),
         WorkspaceTab::new("discovery_inside_tab", "Discovery (inside network)"),
+        WorkspaceTab::new("discovery_outside_tab", "Discovery (outside network)"),
     ];
     let middle_left_tabs = vec![
         WorkspaceTab::new("topology_overview_tab", "Network Topology"),

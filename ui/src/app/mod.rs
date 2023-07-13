@@ -1,3 +1,4 @@
+mod menu_bar;
 mod modals;
 mod network_topology;
 pub mod workspace;

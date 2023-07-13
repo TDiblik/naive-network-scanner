@@ -8,6 +8,7 @@ use std::{
 use uuid::Uuid;
 
 use super::{
+    menu_bar::{file_menu_button::FileMenuButton, view_menu_button::ViewMenuButton},
     modals::add_new_device_window::AddNewDeviceWindowState,
     network_topology::{
         NetworkTopology, NetworkTopologyNode, EGUI_GRAPH_SETTINGS_INTERACTIONS,
@@ -20,9 +21,9 @@ use super::{
 pub struct Workspace {
     // TODO: Allow dead code (id) for now, since I don't want to see the warning. Will be usefull in the future.
     #[allow(dead_code)]
-    id: Uuid,
-    tabs_context: TabsContext,
-    context: WorkspaceContext,
+    pub id: Uuid,
+    pub tabs_context: TabsContext,
+    pub context: WorkspaceContext,
 }
 
 impl Workspace {
@@ -57,56 +58,13 @@ impl eframe::App for Workspace {
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.))
             .show(ctx, |ui| {
                 // Top menu bars
-                // TODO: Refactor into separate file, so it does not polute workspace.rs
                 egui::menu::bar(ui, |ui| {
-                    ui.menu_button("File", |ui| {
-                        ui.label("TODO: Implement project/state saving");
-                    });
-                    ui.menu_button("View", |ui| {
-                        for default_tab in self.tabs_context.default_tabs.iter() {
-                            let open_tab_index = self
-                                .context
-                                .ui_state
-                                .open_tabs
-                                .iter()
-                                .position(|s| s.id == default_tab.id);
-
-                            if ui
-                                .selectable_label(
-                                    open_tab_index.is_some(),
-                                    default_tab.title.clone(),
-                                )
-                                .clicked()
-                            {
-                                if let Some(open_tab_index) = open_tab_index {
-                                    self.tabs_context.tab_tree.remove_tab(
-                                        self.tabs_context.tab_tree.find_tab(default_tab).unwrap(),
-                                    );
-                                    self.context.ui_state.open_tabs.remove(open_tab_index);
-                                } else {
-                                    self.tabs_context
-                                        .tab_tree
-                                        .push_to_focused_leaf(default_tab.clone());
-                                    self.context.ui_state.open_tabs.push(default_tab.clone());
-                                }
-                                ui.close_menu();
-                            }
-                        }
-                    });
+                    FileMenuButton::render(ui);
+                    ViewMenuButton::render(ui, self);
                 });
 
                 // Modal windows
-                let mut show_add_new_device_window =
-                    self.context.ui_state.add_new_device_window_state.open;
-                if show_add_new_device_window {
-                    AddNewDeviceWindowState::render(
-                        ctx,
-                        &mut show_add_new_device_window,
-                        &mut self.context,
-                    );
-                }
-                self.context.ui_state.add_new_device_window_state.open &=
-                    show_add_new_device_window;
+                AddNewDeviceWindowState::render(ctx, &mut self.context);
 
                 // Docking
                 let mut dock_style = egui_dock::Style::from_egui(ui.style());

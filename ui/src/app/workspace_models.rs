@@ -3,7 +3,10 @@ use std::sync::{Arc, Mutex};
 use crate::utils::constants::LINE_ENDING;
 
 use super::{
-    modals::add_new_device_window::AddNewDeviceWindowState, network_topology::NetworkTopology,
+    modals::{
+        add_new_device_window::AddNewDeviceWindowState, generic_info_window::GenericInfoWindowState,
+    },
+    network_topology::NetworkTopology,
     workspace_tab::WorkspaceTab,
 };
 use egui_dock::Tree;
@@ -41,4 +44,5 @@ impl AppState {
 pub struct UIState {
     pub open_tabs: Vec<WorkspaceTab>,
     pub add_new_device_window_state: AddNewDeviceWindowState,
+    pub add_this_computer_state: GenericInfoWindowState,
 }

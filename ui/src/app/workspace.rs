@@ -1,15 +1,18 @@
 use eframe::egui;
-use log::{info, warn};
-use petgraph::visit::IntoNodeReferences;
+use log::{debug, info};
 use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
 use uuid::Uuid;
 
+use crate::utils::general::add_localhost_pc;
+
 use super::{
     menu_bar::{file_menu_button::FileMenuButton, view_menu_button::ViewMenuButton},
-    modals::add_new_device_window::AddNewDeviceWindowState,
+    modals::{
+        add_new_device_window::AddNewDeviceWindowState, generic_info_window::GenericInfoWindowState,
+    },
     network_topology::{
         NetworkTopology, NetworkTopologyNode, EGUI_GRAPH_SETTINGS_INTERACTIONS,
         EGUI_GRAPH_SETTINGS_NAVIGATION, EGUI_GRAPH_SETTINGS_STYLE,
@@ -37,6 +40,7 @@ impl Workspace {
             ui_state: UIState {
                 open_tabs: tabs_context.default_tabs.clone(),
                 add_new_device_window_state: AddNewDeviceWindowState::default(),
+                add_this_computer_state: GenericInfoWindowState::new("Cannot add this computer"),
             },
         };
 
@@ -63,8 +67,13 @@ impl eframe::App for Workspace {
                     ViewMenuButton::render(ui, self);
                 });
 
-                // Modal windows
+                // "Add new device" modal window
                 AddNewDeviceWindowState::render(ctx, &mut self.context);
+                // "Add this computer" info modal window
+                GenericInfoWindowState::render(
+                    ctx,
+                    &mut self.context.ui_state.add_this_computer_state,
+                );
 
                 // Docking
                 let mut dock_style = egui_dock::Style::from_egui(ui.style());
@@ -89,7 +98,7 @@ impl egui_dock::TabViewer for WorkspaceContext {
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         match tab.id.as_str() {
             // TODO (chore): Order by default alignment
-            "meta_tab" => self.render_meta_tab(ui),
+            "general_tab" => self.render_general_tab(ui),
             "topology_overview_tab" => self.render_topology_overview_tab(ui),
             "discovery_inside_tab" => self.render_discovery_inside_tab(ui),
             "status_tab" => self.render_status_tab(ui),
@@ -118,17 +127,13 @@ impl egui_dock::TabViewer for WorkspaceContext {
 impl WorkspaceContext {
     // TODO (chore): Order render functions by default alignment
 
-    fn render_meta_tab(&mut self, ui: &mut egui::Ui) {
+    fn render_general_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Add this computer").clicked() {
-                self.app_state
-                    .network_topology
-                    .add_node(NetworkTopologyNode::new_my_pc().unwrap(), None);
-                // TODO: Graph should re-zoom to fit all
+                add_localhost_pc(self);
             }
             if ui.button("Add a new device").clicked() {
                 self.ui_state.add_new_device_window_state.open = true;
-                // TODO: Graph should re-zoom to fit all
             }
         });
     }
@@ -178,7 +183,7 @@ impl WorkspaceContext {
                         ),
                     );
                     for host in range_to_ping.hosts() {
-                        info!("Testing: {:?}", host);
+                        debug!("Testing: {:?}", host);
                         if ping::ping(
                             host,
                             Some(std::time::Duration::from_millis(100)),
@@ -189,7 +194,7 @@ impl WorkspaceContext {
                         )
                         .is_ok()
                         {
-                            info!("Found: {:?}", host);
+                            debug!("Found: {:?}", host);
                             AppState::log_to_status_generic(
                                 &status_info_ref,
                                 format!("IP {} responded to ping", host),

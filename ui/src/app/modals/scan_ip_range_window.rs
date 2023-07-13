@@ -70,7 +70,6 @@
 //                                 None,
 //                             );
 //                             app_context.ui_state.add_new_device_window_state = Default::default();
-//                             // TODO: Graph should re-zoom to fit all
 //                         } else {
 //                             app_context
 //                                 .ui_state

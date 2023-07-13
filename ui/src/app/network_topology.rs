@@ -4,7 +4,7 @@ use egui_graphs::{
     to_input_graph, Change, Graph, SettingsInteraction, SettingsNavigation, SettingsStyle,
 };
 use local_ip_address::local_ip;
-use log::{info, warn};
+use log::{debug, warn};
 use petgraph::{stable_graph::StableGraph, visit::IntoNodeReferences, Directed};
 use rand::Rng;
 use std::{
@@ -124,7 +124,7 @@ impl Default for NetworkTopology {
             .lock()
             .unwrap()
             .node_references()
-            .for_each(|s| info!("{:?}", s));
+            .for_each(|s| debug!("{:?}", s));
 
         new_topology
     }
@@ -181,5 +181,7 @@ impl NetworkTopology {
             });
 
         graph.lock().unwrap().add_node(new_node)
+
+        // TODO: Graph should re-zoom to fit all
     }
 }

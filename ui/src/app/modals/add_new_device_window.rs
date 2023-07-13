@@ -24,8 +24,8 @@ pub struct AddNewDeviceWindowState {
 
 impl AddNewDeviceWindowState {
     pub fn render(egui_context: &egui::Context, app_context: &mut WorkspaceContext) {
-        let mut show_show_window = app_context.ui_state.add_new_device_window_state.open;
-        if !show_show_window {
+        let mut should_show_window = app_context.ui_state.add_new_device_window_state.open;
+        if !should_show_window {
             return;
         }
 
@@ -33,7 +33,7 @@ impl AddNewDeviceWindowState {
             .collapsible(false)
             .default_pos(ADD_NEW_DEVICE_WINDOW_STARTING_POS)
             .fixed_size(Vec2::new(275.0, 250.0))
-            .open(&mut show_show_window)
+            .open(&mut should_show_window)
             .show(egui_context, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.horizontal(|ui| {
@@ -74,7 +74,6 @@ impl AddNewDeviceWindowState {
                                 None,
                             );
                             app_context.ui_state.add_new_device_window_state = Default::default();
-                            // TODO: Graph should re-zoom to fit all
                         } else {
                             app_context
                                 .ui_state
@@ -85,6 +84,6 @@ impl AddNewDeviceWindowState {
                 });
             });
 
-        app_context.ui_state.add_new_device_window_state.open &= show_show_window;
+        app_context.ui_state.add_new_device_window_state.open &= should_show_window;
     }
 }

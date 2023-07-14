@@ -14,7 +14,9 @@ use super::{
         NetworkTopology, EGUI_GRAPH_SETTINGS_INTERACTIONS, EGUI_GRAPH_SETTINGS_NAVIGATION,
         EGUI_GRAPH_SETTINGS_STYLE,
     },
-    workspace_models::{AppState, StatusMessage, TabsContext, UIState, WorkspaceContext},
+    workspace_models::{
+        AppState, StatusInfo, StatusMessage, TabsContext, UIState, WorkspaceContext,
+    },
     workspace_tab::{default_tabs, WorkspaceTab},
 };
 
@@ -32,7 +34,7 @@ impl Workspace {
         let context = WorkspaceContext {
             app_state: AppState {
                 network_topology: NetworkTopology::default(),
-                status_info: Arc::new(Mutex::new("".to_string())),
+                status_info: Arc::new(Mutex::new(StatusInfo::default())),
             },
             ui_state: UIState {
                 open_tabs: tabs_context.default_tabs.clone(),
@@ -173,6 +175,11 @@ impl WorkspaceContext {
     }
 
     fn render_status_tab(&mut self, ui: &mut egui::Ui) {
-        ui.label(self.app_state.status_info.lock().unwrap().clone());
+        let mut status_info_lock = self.app_state.status_info.lock().unwrap();
+        ui.label(status_info_lock.text.clone());
+        if status_info_lock.scroll_on_next_render {
+            ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
+            status_info_lock.scroll_on_next_render = false;
+        }
     }
 }

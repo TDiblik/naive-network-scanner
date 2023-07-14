@@ -22,7 +22,12 @@ pub struct WorkspaceContext {
     pub ui_state: UIState,
 }
 
-pub type StatusInfo = Arc<Mutex<String>>;
+#[derive(Default)]
+pub struct StatusInfo {
+    pub text: String,
+    pub scroll_on_next_render: bool,
+}
+pub type StatusInfoRef = Arc<Mutex<StatusInfo>>;
 
 #[derive(Clone)]
 pub enum StatusMessage {
@@ -42,14 +47,14 @@ impl From<StatusMessage> for String {
 
 pub struct AppState {
     pub network_topology: NetworkTopology,
-    pub status_info: StatusInfo,
+    pub status_info: StatusInfoRef,
 }
 impl AppState {
     pub fn log_to_status(&self, info_to_append: StatusMessage) {
         Self::log_to_status_generic(&self.status_info, info_to_append);
     }
 
-    pub fn log_to_status_generic(status_info_ref: &StatusInfo, info_to_append: StatusMessage) {
+    pub fn log_to_status_generic(status_info_ref: &StatusInfoRef, info_to_append: StatusMessage) {
         let mut new_log_line = chrono::Local::now()
             .format("%Y-%m-%d %H:%M:%S%.3f")
             .to_string();
@@ -64,7 +69,9 @@ impl AppState {
             StatusMessage::Err(_) => error!("{}", new_log_line),
         }
 
-        status_info_ref.lock().unwrap().push_str(&new_log_line);
+        let mut status_info_lock = status_info_ref.lock().unwrap();
+        status_info_lock.text.push_str(&new_log_line);
+        status_info_lock.scroll_on_next_render = true;
     }
 }
 

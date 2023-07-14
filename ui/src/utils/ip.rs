@@ -4,8 +4,8 @@ use log::debug;
 
 use crate::{
     app::{
-        network_topology::{NetworkTopology, NetworkTopologyGraph, NetworkTopologyNode},
-        workspace_models::{AppState, StatusInfo, StatusMessage},
+        network_topology::NetworkTopologyGraph,
+        workspace_models::{AppState, StatusInfoRef, StatusMessage},
     },
     utils::icmp::send_icmp_echo_request_ping,
 };
@@ -19,7 +19,7 @@ pub struct ScanningOptions {
 use pnet::packet::icmp::IcmpTypes;
 pub fn scan_ip_range(
     mut graph_ref: NetworkTopologyGraph,
-    status_info_ref: StatusInfo,
+    status_info_ref: StatusInfoRef,
     // scanning_options: ScanningOptions,
 ) {
     std::thread::spawn(move || {

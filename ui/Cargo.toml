@@ -31,4 +31,8 @@ rand = "0.8.5"
 crossbeam = "0.8.2"
 ipnet = "2.8.0"
 local-ip-address = "0.5.3"
-ping = "0.4.1"
+ping-rs = "0.1.2"
+
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.12" # or whatever is the latest version

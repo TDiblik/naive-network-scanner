@@ -21,16 +21,17 @@ pub struct WorkspaceContext {
     pub ui_state: UIState,
 }
 
+pub type StatusInfo = Arc<Mutex<String>>;
 pub struct AppState {
     pub network_topology: NetworkTopology,
-    pub status_info: Arc<Mutex<String>>,
+    pub status_info: StatusInfo,
 }
 impl AppState {
     pub fn log_to_status(&self, info_to_append: String) {
         Self::log_to_status_generic(&self.status_info, info_to_append);
     }
 
-    pub fn log_to_status_generic(status_info_ref: &Arc<Mutex<String>>, info_to_append: String) {
+    pub fn log_to_status_generic(status_info_ref: &StatusInfo, info_to_append: String) {
         let mut new_log_line = chrono::Local::now()
             .format("%Y-%m-%d %H:%M:%S%.3f")
             .to_string();

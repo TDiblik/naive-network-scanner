@@ -1,12 +1,9 @@
 use eframe::egui;
-use log::{debug, info};
-use std::{
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use log::info;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::utils::general::add_localhost_pc;
+use crate::utils::{general::add_localhost_pc, ip::scan_ip_range};
 
 use super::{
     menu_bar::{file_menu_button::FileMenuButton, view_menu_button::ViewMenuButton},
@@ -14,8 +11,8 @@ use super::{
         add_new_device_window::AddNewDeviceWindowState, generic_info_window::GenericInfoWindowState,
     },
     network_topology::{
-        NetworkTopology, NetworkTopologyNode, EGUI_GRAPH_SETTINGS_INTERACTIONS,
-        EGUI_GRAPH_SETTINGS_NAVIGATION, EGUI_GRAPH_SETTINGS_STYLE,
+        NetworkTopology, EGUI_GRAPH_SETTINGS_INTERACTIONS, EGUI_GRAPH_SETTINGS_NAVIGATION,
+        EGUI_GRAPH_SETTINGS_STYLE,
     },
     workspace_models::{AppState, TabsContext, UIState, WorkspaceContext},
     workspace_tab::{default_tabs, WorkspaceTab},
@@ -166,70 +163,10 @@ impl WorkspaceContext {
     fn render_discovery_inside_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Scan IP Range").clicked() {
-                let mut graph_ref = Arc::clone(&self.app_state.network_topology.graph);
-                let status_info_ref = Arc::clone(&self.app_state.status_info);
-                std::thread::spawn(move || {
-                    let range_to_ping = ipnet::IpNet::from_str("192.168.0.0/24").unwrap();
-                    dbg!(&range_to_ping.hosts());
-                    let first = range_to_ping.hosts().clone().next();
-                    let last = range_to_ping.hosts().last();
-                    AppState::log_to_status_generic(
-                        &status_info_ref,
-                        format!(
-                            "Starting ip scan from {} to {} ({})",
-                            first.unwrap(),
-                            last.unwrap(),
-                            range_to_ping
-                        ),
-                    );
-                    for host in range_to_ping.hosts() {
-                        debug!("Testing: {:?}", host);
-                        if ping::ping(
-                            host,
-                            Some(std::time::Duration::from_millis(100)),
-                            None,
-                            None,
-                            None,
-                            None,
-                        )
-                        .is_ok()
-                        {
-                            debug!("Found: {:?}", host);
-                            AppState::log_to_status_generic(
-                                &status_info_ref,
-                                format!("IP {} responded to ping", host),
-                            );
-
-                            // if let Some(existing_node) = graph_ref
-                            //     .clone()
-                            //     .lock()
-                            //     .unwrap()
-                            //     .node_references()
-                            //     .find(|s| s.1.data().unwrap().ip == host)
-                            // {
-                            //     graph_ref.lock().unwrap().add_edge(, b, weight)
-                            //     existing_node
-                            // } else {
-                            //     NetworkTopology::add_node_generic(
-                            //         &mut graph_ref,
-                            //         NetworkTopologyNode::new(host, "".to_string()),
-                            //         None,
-                            //     );
-                            // };
-                            NetworkTopology::add_node_generic(
-                                &mut graph_ref,
-                                NetworkTopologyNode::new(host, "".to_string()),
-                                None,
-                            );
-                        }
-                    }
-                    info!("Finished!");
-
-                    AppState::log_to_status_generic(
-                        &status_info_ref,
-                        "Finished ip scan".to_owned(),
-                    );
-                });
+                scan_ip_range(
+                    Arc::clone(&self.app_state.network_topology.graph),
+                    Arc::clone(&self.app_state.status_info),
+                );
             }
         });
     }

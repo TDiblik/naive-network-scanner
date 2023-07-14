@@ -14,7 +14,7 @@ use super::{
         NetworkTopology, EGUI_GRAPH_SETTINGS_INTERACTIONS, EGUI_GRAPH_SETTINGS_NAVIGATION,
         EGUI_GRAPH_SETTINGS_STYLE,
     },
-    workspace_models::{AppState, TabsContext, UIState, WorkspaceContext},
+    workspace_models::{AppState, StatusMessage, TabsContext, UIState, WorkspaceContext},
     workspace_tab::{default_tabs, WorkspaceTab},
 };
 
@@ -41,9 +41,10 @@ impl Workspace {
             },
         };
 
-        context
-            .app_state
-            .log_to_status(format!("Initialized new workspace {}!", id));
+        context.app_state.log_to_status(StatusMessage::Info(format!(
+            "Initialized new workspace {}!",
+            id
+        )));
         Self {
             id,
             tabs_context,

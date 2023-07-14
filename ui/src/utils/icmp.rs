@@ -1,28 +1,26 @@
 use std::{
-    io::ErrorKind,
     net::IpAddr,
     sync::{Arc, Mutex, RwLock},
     thread,
     time::{Duration, Instant},
 };
 
-use anyhow::{anyhow, Error};
-use log::{debug, error};
+use anyhow::anyhow;
+use log::error;
 use rand::random;
 
 use pnet::packet::{
     icmp::{
-        echo_reply::{self, EchoReplyPacket},
+        echo_reply::EchoReplyPacket,
         echo_request::{IcmpCodes, MutableEchoRequestPacket},
-        IcmpCode, IcmpPacket, IcmpType, IcmpTypes,
+        IcmpCode, IcmpType, IcmpTypes,
     },
     ip::IpNextHeaderProtocols,
     util, Packet,
 };
-
-use pnet_transport::icmp_packet_iter;
-use pnet_transport::TransportChannelType::Layer4;
-use pnet_transport::{transport_channel, TransportProtocol};
+use pnet::transport::icmp_packet_iter;
+use pnet::transport::TransportChannelType::Layer4;
+use pnet::transport::{transport_channel, TransportProtocol};
 
 const ICMP_SIZE: usize = 64;
 
@@ -97,7 +95,7 @@ pub fn send_icmp_echo_request_ping(address: IpAddr) -> anyhow::Result<Option<Ech
     });
 
     loop {
-        thread::sleep(Duration::from_millis(1)); // TODO: Configureable time to sleep before checking
+        thread::sleep(Duration::from_millis(10)); // TODO: Configureable time to sleep before checking
 
         let status_lock = status.lock().unwrap();
         if let Some(err_text) = status_lock.stringified_err.clone() {
@@ -106,7 +104,8 @@ pub fn send_icmp_echo_request_ping(address: IpAddr) -> anyhow::Result<Option<Ech
 
         // TODO: Configureable timeout time
         if status_lock.got_reply
-            || Instant::now() - *sent_at.read().unwrap() > Duration::from_millis(500)
+            || Instant::now() - *sent_at.read().unwrap() > Duration::from_millis(100)
+        // || Instant::now() - *sent_at.read().unwrap() > Duration::from_secs(500)
         {
             return Ok(status_lock.reply.clone());
         }

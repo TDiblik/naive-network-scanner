@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use log::{debug, error};
+use log::debug;
 
 use crate::{
     app::{
         network_topology::{NetworkTopology, NetworkTopologyGraph, NetworkTopologyNode},
-        workspace_models::{AppState, StatusInfo},
+        workspace_models::{AppState, StatusInfo, StatusMessage},
     },
     utils::icmp::send_icmp_echo_request_ping,
 };
@@ -25,34 +25,26 @@ pub fn scan_ip_range(
     std::thread::spawn(move || {
         let range_to_ping = ipnet::IpNet::from_str("192.168.0.0/24").unwrap();
         dbg!(&range_to_ping.hosts());
-        let first = range_to_ping.hosts().clone().next();
-        let last = range_to_ping.hosts().last();
-        AppState::log_to_status_generic(
-            &status_info_ref,
-            format!(
-                "Starting ip scan from {} to {} ({})",
-                first.unwrap(),
-                last.unwrap(),
-                range_to_ping
-            ),
-        );
 
         let mut number_of_hosts = 0;
         for host in range_to_ping.hosts() {
             let Ok(answ) = send_icmp_echo_request_ping(host) else {
-                let err_msg ="send_icmp_echo_request_ping returned error. Check logs for more info.";
-                error!("{}", err_msg);
-                AppState::log_to_status_generic(&status_info_ref, err_msg.to_owned());
+                AppState::log_to_status_generic(&status_info_ref, StatusMessage::Err("send_icmp_echo_request_ping returned error. Check logs for more info.".to_owned()));
                 continue;
             };
             let Some(answ) = answ else {
-                AppState::log_to_status_generic(&status_info_ref, "ping timedout".to_string());
+                AppState::log_to_status_generic(&status_info_ref, StatusMessage::Warn(format!("{} ping timedout", host)));
+                dbg!(answ);
                 continue;
             };
 
-            dbg!(&answ.addr);
-            dbg!(answ.icmp_type == IcmpTypes::EchoReply);
+            // dbg!(&answ.addr);
+            // dbg!(answ.icmp_type == IcmpTypes::EchoReply);
             if answ.icmp_type == IcmpTypes::EchoReply {
+                AppState::log_to_status_generic(
+                    &status_info_ref,
+                    StatusMessage::Info(format!("{} is reachable", host)),
+                );
                 number_of_hosts += 1;
             }
         }
@@ -80,7 +72,5 @@ pub fn scan_ip_range(
         //     }
         // }
         debug!("Finished!");
-
-        AppState::log_to_status_generic(&status_info_ref, "Finished ip scan".to_owned());
     });
 }

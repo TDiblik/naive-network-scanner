@@ -5,7 +5,11 @@ use egui_graphs::{
 };
 use local_ip_address::local_ip;
 use log::{debug, warn};
-use petgraph::{stable_graph::StableGraph, visit::IntoNodeReferences, Directed};
+use petgraph::{
+    stable_graph::{EdgeIndex, NodeIndex, StableGraph},
+    visit::{EdgeRef, IntoNodeReferences},
+    Directed,
+};
 use rand::Rng;
 use std::{
     net::IpAddr,
@@ -59,7 +63,11 @@ impl NetworkTopologyNode {
     }
 }
 
-pub type NetworkTopologyGraph = Arc<Mutex<Graph<NetworkTopologyNode, (), Directed>>>;
+#[derive(Debug, Clone, Default)]
+pub struct NetworkTopologyEdge {}
+
+pub type NetworkTopologyGraph =
+    Arc<Mutex<Graph<NetworkTopologyNode, NetworkTopologyEdge, Directed>>>;
 pub struct NetworkTopology {
     pub graph: NetworkTopologyGraph,
     pub graph_changes_sender: Sender<Change>,
@@ -69,7 +77,8 @@ pub struct NetworkTopology {
 #[cfg(debug_assertions)]
 impl Default for NetworkTopology {
     fn default() -> Self {
-        let graph_base: StableGraph<NetworkTopologyNode, ()> = StableGraph::default();
+        let graph_base: StableGraph<NetworkTopologyNode, NetworkTopologyEdge> =
+            StableGraph::default();
         let graph = Arc::new(Mutex::new(to_input_graph(&graph_base)));
         let (graph_changes_sender, graph_changes_receiver) = unbounded();
         let mut new_topology = Self {
@@ -133,7 +142,8 @@ impl Default for NetworkTopology {
 #[cfg(not(debug_assertions))]
 impl Default for NetworkTopology {
     fn default() -> Self {
-        let graph_base: StableGraph<NetworkTopologyNode, ()> = StableGraph::default();
+        let graph_base: StableGraph<NetworkTopologyNode, NetworkTopologyEdge> =
+            StableGraph::default();
         let graph = Arc::new(Mutex::new(to_input_graph(&graph_base)));
 
         let (graph_changes_sender, graph_changes_receiver) = unbounded();
@@ -156,7 +166,41 @@ impl Default for NetworkTopology {
     }
 }
 
+pub type MaybeNetworkTopologyGraphNode =
+    Option<(NodeIndex, egui_graphs::Node<NetworkTopologyNode>)>;
+#[allow(dead_code)]
 impl NetworkTopology {
+    pub fn get_localhost_node(&mut self) -> MaybeNetworkTopologyGraphNode {
+        Self::get_localhosts_node_generic(&mut self.graph)
+    }
+
+    pub fn get_localhosts_node_generic(
+        graph: &mut NetworkTopologyGraph,
+    ) -> MaybeNetworkTopologyGraphNode {
+        let graph_lock = graph.lock().unwrap();
+        let (node_index, node_value) = graph_lock
+            .node_references()
+            .find(|s| s.1.data().unwrap().is_localhost)?;
+
+        Some((node_index, node_value.clone()))
+    }
+
+    pub fn get_node_by_ip(&mut self, ip: IpAddr) -> MaybeNetworkTopologyGraphNode {
+        Self::get_node_by_ip_generic(&mut self.graph, ip)
+    }
+
+    pub fn get_node_by_ip_generic(
+        graph: &mut NetworkTopologyGraph,
+        ip: IpAddr,
+    ) -> MaybeNetworkTopologyGraphNode {
+        let graph_lock = graph.lock().unwrap();
+        let (node_index, node_value) = graph_lock
+            .node_references()
+            .find(|s| s.1.data().unwrap().ip == ip)?;
+
+        Some((node_index, node_value.clone()))
+    }
+
     pub fn add_node(&mut self, new_topology_node: NetworkTopologyNode, location: Option<Vec2>) {
         Self::add_node_generic(&mut self.graph, new_topology_node, location);
     }
@@ -165,7 +209,7 @@ impl NetworkTopology {
         graph: &mut NetworkTopologyGraph,
         new_topology_node: NetworkTopologyNode,
         location: Option<Vec2>,
-    ) -> petgraph::stable_graph::NodeIndex {
+    ) -> NodeIndex {
         let mut rng = rand::thread_rng(); // TODO: could be optimized ? Idk if it's creating a new instance every time :/
         let spawn_location = location.unwrap_or(Vec2::new(
             rng.gen_range(-200.0..200.0),
@@ -183,5 +227,40 @@ impl NetworkTopology {
         graph.lock().unwrap().add_node(new_node)
 
         // TODO: Graph should re-zoom to fit all
+    }
+
+    pub fn add_edge(
+        &mut self,
+        from: NodeIndex,
+        to: NodeIndex,
+        weight: NetworkTopologyEdge,
+    ) -> EdgeIndex {
+        Self::add_edge_generic(&mut self.graph, from, to, weight)
+    }
+
+    pub fn add_edge_generic(
+        graph: &mut NetworkTopologyGraph,
+        from: NodeIndex,
+        to: NodeIndex,
+        weight: NetworkTopologyEdge,
+    ) -> EdgeIndex {
+        let new_edge = egui_graphs::Edge::new(weight);
+
+        graph.lock().unwrap().add_edge(from, to, new_edge)
+    }
+
+    pub fn remove_edges_from_node(&mut self, from: NodeIndex) {
+        Self::remove_edges_from_node_generic(&mut self.graph, from)
+    }
+
+    pub fn remove_edges_from_node_generic(graph: &mut NetworkTopologyGraph, from: NodeIndex) {
+        let mut graph_lock = graph.lock().unwrap();
+        for edge in graph_lock
+            .edges(from)
+            .map(|s| s.id())
+            .collect::<Vec<EdgeIndex>>()
+        {
+            graph_lock.remove_edge(edge);
+        }
     }
 }

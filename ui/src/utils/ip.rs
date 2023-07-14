@@ -1,10 +1,10 @@
-use std::str::FromStr;
-
-use log::debug;
+use std::net::IpAddr;
 
 use crate::{
     app::{
-        network_topology::NetworkTopologyGraph,
+        network_topology::{
+            NetworkTopology, NetworkTopologyEdge, NetworkTopologyGraph, NetworkTopologyNode,
+        },
         workspace_models::{AppState, StatusInfoRef, StatusMessage},
     },
     utils::icmp::send_icmp_echo_request_ping,
@@ -17,60 +17,74 @@ pub struct ScanningOptions {
 }
 
 use pnet::packet::icmp::IcmpTypes;
-pub fn scan_ip_range(
+pub fn ping_ip_range(
     mut graph_ref: NetworkTopologyGraph,
     status_info_ref: StatusInfoRef,
-    // scanning_options: ScanningOptions,
+    ips_to_ping: Vec<IpAddr>, // scanning_options: ScanningOptions,
 ) {
     std::thread::spawn(move || {
-        let range_to_ping = ipnet::IpNet::from_str("192.168.0.0/24").unwrap();
-        dbg!(&range_to_ping.hosts());
-
         let mut number_of_hosts = 0;
-        for host in range_to_ping.hosts() {
-            let Ok(answ) = send_icmp_echo_request_ping(host) else {
+        let localhost_node_index =
+            match NetworkTopology::get_localhosts_node_generic(&mut graph_ref) {
+                Some(s) => Some(s.0),
+                None => None,
+            };
+
+        if let Some(localhost) = localhost_node_index {
+            NetworkTopology::remove_edges_from_node_generic(&mut graph_ref, localhost);
+        }
+
+        for ip in ips_to_ping {
+            let Ok(answ) = send_icmp_echo_request_ping(ip) else {
                 AppState::log_to_status_generic(&status_info_ref, StatusMessage::Err("send_icmp_echo_request_ping returned error. Check logs for more info.".to_owned()));
                 continue;
             };
             let Some(answ) = answ else {
-                AppState::log_to_status_generic(&status_info_ref, StatusMessage::Warn(format!("{} ping timedout", host)));
-                dbg!(answ);
+                AppState::log_to_status_generic(&status_info_ref, StatusMessage::Warn(format!("{} ping timed out", ip)));
                 continue;
             };
-
-            // dbg!(&answ.addr);
-            // dbg!(answ.icmp_type == IcmpTypes::EchoReply);
-            if answ.icmp_type == IcmpTypes::EchoReply {
+            if answ.icmp_type == IcmpTypes::DestinationUnreachable {
                 AppState::log_to_status_generic(
                     &status_info_ref,
-                    StatusMessage::Info(format!("{} is reachable", host)),
+                    StatusMessage::Warn(format!("{} is unreachable", ip)),
                 );
-                number_of_hosts += 1;
+                continue;
             }
+            if answ.icmp_type != IcmpTypes::EchoReply {
+                AppState::log_to_status_generic(
+                    &status_info_ref,
+                    StatusMessage::Warn(format!(
+                        "{} ping returned {{ adr \"{}\" , icmp type \"{}\" , icmp code \"{}\" }}. Likely unreacheable.",
+                        ip, answ.addr, answ.icmp_type.0, answ.icmp_code.0
+                    )),
+                );
+                continue;
+            }
+
+            let target_node_index =
+                match NetworkTopology::get_node_by_ip_generic(&mut graph_ref, ip) {
+                    Some((node_index, _)) => node_index,
+                    None => NetworkTopology::add_node_generic(
+                        &mut graph_ref,
+                        NetworkTopologyNode::new(ip, "".to_string()),
+                        None,
+                    ),
+                };
+            if let Some(localhost) = localhost_node_index {
+                NetworkTopology::add_edge_generic(
+                    &mut graph_ref,
+                    localhost,
+                    target_node_index,
+                    NetworkTopologyEdge::default(),
+                );
+            }
+
+            AppState::log_to_status_generic(
+                &status_info_ref,
+                StatusMessage::Info(format!("{} is reachable", ip)),
+            );
+            number_of_hosts += 1;
         }
         dbg!(number_of_hosts);
-
-        // for host in range_to_ping.hosts() {
-        //     debug!("Testing: {:?}", host);
-        //     // TODO: Refactor into a function that returns bool and does not leak any implementation details.
-        //     // TODO: The underlying library is slow as fuck. Replace asap.
-        //     if let Ok(reply) = ping_rs::send_ping(
-        //         &host,
-        //         std::time::Duration::from_secs(5),
-        //         &[0],
-        //         Some(&ping_rs::PingOptions {
-        //             ttl: 128,
-        //             dont_fragment: true,
-        //         }),
-        //     ) {
-        //         debug!("Ping {:?}", reply);
-        //         NetworkTopology::add_node_generic(
-        //             &mut graph_ref,
-        //             NetworkTopologyNode::new(host, "".to_string()),
-        //             None,
-        //         );
-        //     }
-        // }
-        debug!("Finished!");
     });
 }

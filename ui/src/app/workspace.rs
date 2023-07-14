@@ -3,7 +3,7 @@ use log::info;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::utils::{general::add_localhost_pc, ip::scan_ip_range};
+use crate::utils::{general::add_localhost_pc, ip::ping_ip_range};
 
 use super::{
     menu_bar::{file_menu_button::FileMenuButton, view_menu_button::ViewMenuButton},
@@ -166,9 +166,22 @@ impl WorkspaceContext {
     fn render_discovery_inside_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Scan IP Range").clicked() {
-                scan_ip_range(
+                ping_ip_range(
                     Arc::clone(&self.app_state.network_topology.graph),
                     Arc::clone(&self.app_state.status_info),
+                    vec![
+                        "192.168.0.0".parse().unwrap(),
+                        "192.168.0.1".parse().unwrap(),
+                        "192.168.0.2".parse().unwrap(),
+                        "192.168.0.3".parse().unwrap(),
+                        "192.168.0.4".parse().unwrap(),
+                        "192.168.0.5".parse().unwrap(),
+                        "192.168.0.6".parse().unwrap(),
+                        "192.168.0.7".parse().unwrap(),
+                        "192.168.0.8".parse().unwrap(),
+                        "192.168.0.9".parse().unwrap(),
+                        "192.168.0.10".parse().unwrap(),
+                    ],
                 );
             }
         });

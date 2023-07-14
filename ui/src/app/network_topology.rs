@@ -18,8 +18,9 @@ use std::{
 use uuid::Uuid;
 
 lazy_static! {
-    pub static ref EGUI_GRAPH_SETTINGS_STYLE: SettingsStyle =
-        SettingsStyle::new().with_labels_always(true);
+    pub static ref EGUI_GRAPH_SETTINGS_STYLE: SettingsStyle = SettingsStyle::new()
+        .with_labels_always(true)
+        .with_edge_radius_weight(0.0);
     pub static ref EGUI_GRAPH_SETTINGS_INTERACTIONS: SettingsInteraction =
         SettingsInteraction::new()
             .with_clicking_enabled(true)

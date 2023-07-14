@@ -1,3 +1,4 @@
+use pnet::packet::icmp::IcmpTypes;
 use std::net::IpAddr;
 
 use crate::{
@@ -16,7 +17,6 @@ pub struct ScanningOptions {
     multithreading_number_of_threds: u8,
 }
 
-use pnet::packet::icmp::IcmpTypes;
 pub fn ping_ip_range(
     mut graph_ref: NetworkTopologyGraph,
     status_info_ref: StatusInfoRef,

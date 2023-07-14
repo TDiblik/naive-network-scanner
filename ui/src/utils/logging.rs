@@ -41,7 +41,7 @@ pub fn init() -> anyhow::Result<()> {
         )
         .appender(
             Appender::builder()
-                .filter(Box::new(ThresholdFilter::new(log::LevelFilter::Warn)))
+                .filter(Box::new(ThresholdFilter::new(log::LevelFilter::Error)))
                 .build(
                     "stderr",
                     Box::new(ConsoleAppender::builder().target(Target::Stderr).build()),
@@ -51,7 +51,7 @@ pub fn init() -> anyhow::Result<()> {
             Root::builder()
                 .appender("logfile")
                 .appender("stderr")
-                .build(LevelFilter::Info),
+                .build(LevelFilter::Warn),
         )?;
 
     _ = log4rs::init_config(config)?;

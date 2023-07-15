@@ -57,11 +57,18 @@ pub fn ping_ip_list(
 
         for ip in ips_to_ping {
             unreachable_ips.push(ip);
-            let Ok(answ) = send_icmp_echo_request_ping(ip, ping_timeout_ms, ping_checkup_ms) else {
-                AppState::log_to_status_generic(&status_info_ref, StatusMessage::Err("send_icmp_echo_request_ping returned error. Check logs for more info.".to_owned()));
+            let answ = send_icmp_echo_request_ping(ip, ping_timeout_ms, ping_checkup_ms);
+            if answ.is_err() {
+                AppState::log_to_status_generic(
+                    &status_info_ref,
+                    StatusMessage::Err(format!(
+                        "send_icmp_echo_request_ping returned an error => {:?}",
+                        answ
+                    )),
+                );
                 continue;
-            };
-            let Some(answ) = answ else {
+            }
+            let Some(answ) = answ.unwrap() else {
                 AppState::log_to_status_generic(&status_info_ref, StatusMessage::Warn(format!("{} ping timed out", ip)));
                 continue;
             };

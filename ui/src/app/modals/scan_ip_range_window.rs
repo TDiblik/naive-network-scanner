@@ -1,8 +1,6 @@
-use eframe::{
-    egui,
-    epaint::{Color32, Vec2},
-};
+use eframe::{egui, epaint::Vec2};
 use ipnet::IpNet;
+use local_ip_address::local_ip;
 use std::{
     net::{IpAddr, Ipv6Addr},
     str::FromStr,
@@ -12,14 +10,17 @@ use std::{
 use crate::{
     app::workspace_models::WorkspaceContext,
     utils::{
-        constants::{WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH},
+        constants::{
+            ACTION_SPACER, DEFAULT_SPACER, WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH,
+        },
+        general::{render_numeric_textbox, render_validation_err},
         ip::ping_ip_list,
     },
 };
 
 const SCAN_IP_RANGE_WINDOW_STARTING_POS: eframe::epaint::Pos2 = eframe::epaint::Pos2 {
     x: WORKSPACE_WINDOW_WIDTH / 2.0 - 150.0,  // TODO: Edit
-    y: WORKSPACE_WINDOW_HEIGHT / 2.0 - 150.0, // TODO: Edit
+    y: WORKSPACE_WINDOW_HEIGHT / 2.0 - 250.0, // TODO: Edit
 };
 
 pub struct ScanIpRangeWindowState {
@@ -35,6 +36,12 @@ pub struct ScanIpRangeWindowState {
 
     pub manual_ips: Vec<String>,
     pub manual_ips_validation_err: Vec<String>,
+
+    pub settings_ping_timeout_ms: String,
+    pub settings_ping_checkup_ms: String,
+    pub settings_exlude_localhost: bool,
+    pub settings_remove_connectivity_status_when_unreachable: bool,
+    pub settings_reset_connectivity_status: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -47,8 +54,8 @@ pub enum IpInputType {
 impl Default for ScanIpRangeWindowState {
     fn default() -> Self {
         Self {
-            open: true,
-            // open: false,
+            open: false,
+
             input_type: IpInputType::Range,
             range_ip_from: "192.168.0.0".to_owned(),
             range_ip_from_validation_err: false,
@@ -60,6 +67,12 @@ impl Default for ScanIpRangeWindowState {
 
             manual_ips: vec!["192.168.0.1".to_owned()],
             manual_ips_validation_err: vec![],
+
+            settings_ping_timeout_ms: "500".to_owned(),
+            settings_ping_checkup_ms: "10".to_owned(),
+            settings_exlude_localhost: true,
+            settings_remove_connectivity_status_when_unreachable: true,
+            settings_reset_connectivity_status: false,
         }
     }
 }
@@ -108,15 +121,16 @@ impl ScanIpRangeWindowState {
                                         .range_ip_from,
                                 );
                             });
-                            if app_context
-                                .ui_state
-                                .scan_ip_range_window_state
-                                .range_ip_from_validation_err
-                            {
-                                ui.colored_label(Color32::RED, "IP is not valid.");
-                            }
-                            ui.add_space(5.0);
+                            render_validation_err(
+                                ui,
+                                app_context
+                                    .ui_state
+                                    .scan_ip_range_window_state
+                                    .range_ip_from_validation_err,
+                                "IP is not valid.",
+                            );
 
+                            ui.add_space(DEFAULT_SPACER);
                             ui.horizontal(|ui| {
                                 ui.label("To IP Address     ");
                                 ui.text_edit_singleline(
@@ -126,13 +140,14 @@ impl ScanIpRangeWindowState {
                                         .range_ip_to,
                                 );
                             });
-                            if app_context
-                                .ui_state
-                                .scan_ip_range_window_state
-                                .range_ip_to_validation_err
-                            {
-                                ui.colored_label(Color32::RED, "IP is not valid.");
-                            }
+                            render_validation_err(
+                                ui,
+                                app_context
+                                    .ui_state
+                                    .scan_ip_range_window_state
+                                    .range_ip_to_validation_err,
+                                "IP is not valid.",
+                            );
                         }
                         IpInputType::CIDRNotation => {
                             ui.horizontal(|ui| {
@@ -144,13 +159,14 @@ impl ScanIpRangeWindowState {
                                         .cidr_notation,
                                 );
                             });
-                            if app_context
-                                .ui_state
-                                .scan_ip_range_window_state
-                                .cidr_notation_validation_err
-                            {
-                                ui.colored_label(Color32::RED, "CIDR notation is not valid.");
-                            }
+                            render_validation_err(
+                                ui,
+                                app_context
+                                    .ui_state
+                                    .scan_ip_range_window_state
+                                    .cidr_notation_validation_err,
+                                "CIDR notation is not valid.",
+                            );
                         }
                         IpInputType::Manual => {
                             let mut index_to_delete = None;
@@ -183,10 +199,14 @@ impl ScanIpRangeWindowState {
                                 .manual_ips_validation_err
                                 .iter()
                             {
-                                ui.colored_label(Color32::RED, format!("{} is not valid IP.", err));
+                                render_validation_err(
+                                    ui,
+                                    true,
+                                    &format!("{} is not valid IP.", err),
+                                );
                             }
 
-                            ui.add_space(5.0);
+                            ui.add_space(DEFAULT_SPACER);
                             if ui.button("+").clicked() {
                                 app_context
                                     .ui_state
@@ -196,11 +216,69 @@ impl ScanIpRangeWindowState {
                             }
                         }
                     }
-                    ui.add_space(5.0);
+                    ui.add_space(DEFAULT_SPACER);
                     ui.separator();
 
+                    ui.add_space(DEFAULT_SPACER);
+                    ui.horizontal(|ui| {
+                        ui.label("Ping timeout (ms)");
+                        render_numeric_textbox(
+                            ui,
+                            &mut app_context
+                                .ui_state
+                                .scan_ip_range_window_state
+                                .settings_ping_timeout_ms,
+                        );
+                    });
+
+                    ui.add_space(DEFAULT_SPACER);
+                    ui.horizontal(|ui| {
+                        ui.label("Ping checkup (ms)");
+                        render_numeric_textbox(
+                            ui,
+                            &mut app_context
+                                .ui_state
+                                .scan_ip_range_window_state
+                                .settings_ping_checkup_ms,
+                        );
+                    });
+
+                    ui.add_space(DEFAULT_SPACER);
+                    ui.horizontal(|ui| {
+                        ui.checkbox(
+                            &mut app_context
+                                .ui_state
+                                .scan_ip_range_window_state
+                                .settings_exlude_localhost,
+                            "Exclude localhost (my ip)",
+                        );
+                    });
+
+                    ui.add_space(DEFAULT_SPACER);
+                    ui.horizontal(|ui| {
+                        ui.checkbox(
+                            &mut app_context
+                                .ui_state
+                                .scan_ip_range_window_state
+                                .settings_remove_connectivity_status_when_unreachable,
+                            "Remove connectivity status when unreachable",
+                        );
+                    });
+
+                    ui.add_space(DEFAULT_SPACER);
+                    ui.horizontal(|ui| {
+                        ui.checkbox(
+                            &mut app_context
+                                .ui_state
+                                .scan_ip_range_window_state
+                                .settings_reset_connectivity_status,
+                            "Reset connectivity status (for each node)",
+                        );
+                    });
+
+                    ui.add_space(ACTION_SPACER);
                     if ui.button("Start scan").clicked() {
-                        let ips_to_scan: Option<Vec<IpAddr>> = match app_context
+                        let ips_to_ping: Option<Vec<IpAddr>> = match app_context
                             .ui_state
                             .scan_ip_range_window_state
                             .input_type
@@ -341,11 +419,46 @@ impl ScanIpRangeWindowState {
                             }
                         };
 
-                        if let Some(ips_to_ping) = ips_to_scan {
+                        if let Some(mut ips_to_ping) = ips_to_ping {
+                            // Exclude localhost. This code is ugly. I hope if let chains get implemented soon.
+                            if app_context
+                                .ui_state
+                                .scan_ip_range_window_state
+                                .settings_exlude_localhost
+                            {
+                                if let Ok(my_ip) = local_ip() {
+                                    if let Some(position_of_my_ip) =
+                                        ips_to_ping.iter().position(|s| *s == my_ip)
+                                    {
+                                        ips_to_ping.remove(position_of_my_ip);
+                                    }
+                                }
+                            }
+
                             ping_ip_list(
                                 Arc::clone(&app_context.app_state.network_topology.graph),
                                 Arc::clone(&app_context.app_state.status_info),
                                 ips_to_ping,
+                                app_context
+                                    .ui_state
+                                    .scan_ip_range_window_state
+                                    .settings_ping_timeout_ms
+                                    .parse()
+                                    .unwrap_or(1),
+                                app_context
+                                    .ui_state
+                                    .scan_ip_range_window_state
+                                    .settings_ping_checkup_ms
+                                    .parse()
+                                    .unwrap_or(1),
+                                app_context
+                                    .ui_state
+                                    .scan_ip_range_window_state
+                                    .settings_remove_connectivity_status_when_unreachable,
+                                app_context
+                                    .ui_state
+                                    .scan_ip_range_window_state
+                                    .settings_reset_connectivity_status,
                             );
                             app_context.ui_state.scan_ip_range_window_state.open = false;
                         }

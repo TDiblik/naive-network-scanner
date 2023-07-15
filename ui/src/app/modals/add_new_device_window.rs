@@ -1,7 +1,4 @@
-use eframe::{
-    egui,
-    epaint::{Color32, Vec2},
-};
+use eframe::{egui, epaint::Vec2};
 use std::{net::IpAddr, str::FromStr};
 
 use crate::{

@@ -16,7 +16,8 @@ use pnet::packet::{
         IcmpCode, IcmpType, IcmpTypes,
     },
     ip::IpNextHeaderProtocols,
-    util, Packet,
+    util::checksum,
+    Packet,
 };
 use pnet::transport::icmp_packet_iter;
 use pnet::transport::TransportChannelType::Layer4;
@@ -45,7 +46,11 @@ pub struct EchoReplyInfo {
 }
 
 // Could be optimized by sending multiple pings at once, but I don't really care about perfomance atm
-pub fn send_icmp_echo_request_ping(address: IpAddr) -> anyhow::Result<Option<EchoReplyInfo>> {
+pub fn send_icmp_echo_request_ping(
+    address: IpAddr,
+    ping_timeout_ms: u64,
+    ping_checkup_ms: u64,
+) -> anyhow::Result<Option<EchoReplyInfo>> {
     let protocol = Layer4(TransportProtocol::Ipv4(IpNextHeaderProtocols::Icmp));
     let (mut tx, mut rx) = match transport_channel(4096, protocol) {
         Ok((tx, rx)) => (tx, rx),
@@ -94,19 +99,17 @@ pub fn send_icmp_echo_request_ping(address: IpAddr) -> anyhow::Result<Option<Ech
         }
     });
 
+    let ping_timeout = Duration::from_millis(ping_timeout_ms);
+    let ping_checkup = Duration::from_millis(ping_checkup_ms);
     loop {
-        thread::sleep(Duration::from_millis(10)); // TODO: Configureable time to sleep before checking
+        thread::sleep(ping_checkup);
 
         let status_lock = status.lock().unwrap();
         if let Some(err_text) = status_lock.stringified_err.clone() {
             return Err(anyhow!(err_text));
         }
 
-        // TODO: Configureable timeout time
-        if status_lock.got_reply
-            || Instant::now() - *sent_at.read().unwrap() > Duration::from_millis(100)
-        // || Instant::now() - *sent_at.read().unwrap() > Duration::from_secs(500)
-        {
+        if status_lock.got_reply || Instant::now() - *sent_at.read().unwrap() > ping_timeout {
             return Ok(status_lock.reply.clone());
         }
     }
@@ -118,8 +121,7 @@ fn create_icmp_echo_request_packet(icmp_header: &mut [u8]) -> MutableEchoRequest
     icmp_packet.set_icmp_code(IcmpCodes::NoCode);
     icmp_packet.set_identifier(random::<u16>());
     icmp_packet.set_sequence_number(1);
-    let checksum = util::checksum(icmp_packet.packet(), 1);
-    icmp_packet.set_checksum(checksum);
+    icmp_packet.set_checksum(checksum(icmp_packet.packet(), 1));
 
     icmp_packet
 }

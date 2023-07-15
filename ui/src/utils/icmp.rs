@@ -24,6 +24,8 @@ use pnet::transport::TransportChannelType::Layer4;
 use pnet::transport::{transport_channel, TransportProtocol};
 
 const ICMP_SIZE: usize = 64;
+pub const DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS: u64 = 5000;
+pub const DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS: u64 = 20;
 
 struct PingStatus {
     got_reply: bool,

@@ -1,5 +1,5 @@
 use eframe::{egui, epaint::Vec2};
-use std::{net::IpAddr, str::FromStr};
+use std::{net::IpAddr, str::FromStr, sync::Arc};
 
 use crate::{
     app::{network_topology::NetworkTopologyNode, workspace_models::WorkspaceContext},
@@ -8,6 +8,11 @@ use crate::{
             ACTION_SPACER, DEFAULT_SPACER, WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH,
         },
         general::render_validation_err,
+        icmp::{
+            DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS,
+            DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
+        },
+        ip::ping_ip_list,
     },
 };
 
@@ -23,6 +28,7 @@ pub struct AddNewDeviceWindowState {
     pub ip_validation_err: bool,
     pub ip_already_exists_err: bool,
     pub notes: String,
+    pub ping_after_creation: bool,
 }
 
 impl AddNewDeviceWindowState {
@@ -70,6 +76,15 @@ impl AddNewDeviceWindowState {
                         "IP already exists as a node.",
                     );
 
+                    ui.add_space(DEFAULT_SPACER);
+                    ui.checkbox(
+                        &mut app_context
+                            .ui_state
+                            .add_new_device_window_state
+                            .ping_after_creation,
+                        "Send ping after creation",
+                    );
+
                     ui.add_space(ACTION_SPACER);
                     if ui.button("Add").clicked() {
                         app_context
@@ -104,6 +119,21 @@ impl AddNewDeviceWindowState {
                                     .add_new_device_window_state
                                     .ip_already_exists_err = true;
                                 return;
+                            }
+                            if app_context
+                                .ui_state
+                                .add_new_device_window_state
+                                .ping_after_creation
+                            {
+                                ping_ip_list(
+                                    Arc::clone(&app_context.app_state.network_topology.graph),
+                                    Arc::clone(&app_context.app_state.status_info),
+                                    vec![new_ip],
+                                    DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
+                                    DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS,
+                                    false,
+                                    false,
+                                );
                             }
                             app_context.ui_state.add_new_device_window_state = Default::default();
                         } else {

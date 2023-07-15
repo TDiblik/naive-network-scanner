@@ -3,9 +3,9 @@ use eframe::{egui, epaint::Vec2};
 use crate::utils::constants::{WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH};
 
 pub struct GenericInfoWindowState {
-    pub open: bool,
-    pub title: String,
-    pub text: String,
+    open: bool,
+    title: String,
+    text: String,
 }
 impl GenericInfoWindowState {
     pub fn new(title: &str) -> Self {
@@ -14,6 +14,16 @@ impl GenericInfoWindowState {
             title: title.to_string(),
             text: "".to_string(),
         }
+    }
+
+    pub fn show(&mut self, text: String) {
+        self.open = true;
+        self.text = text;
+    }
+
+    pub fn hide(&mut self) {
+        self.open = false;
+        self.text = "".to_owned();
     }
 }
 
@@ -38,7 +48,7 @@ impl GenericInfoWindowState {
                 ui.vertical_centered(|ui| {
                     ui.label(generic_state.text.as_str());
                     if ui.button("Ok").clicked() {
-                        generic_state.open = false;
+                        generic_state.hide();
                     }
                 })
             });

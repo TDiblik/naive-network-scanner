@@ -7,8 +7,7 @@ pub fn add_localhost_pc(app_context: &mut WorkspaceContext) {
     let new_localhost = NetworkTopologyNode::new_my_pc();
 
     if new_localhost.is_err() {
-        app_context.ui_state.add_this_computer_window_state.open = false;
-        app_context.ui_state.add_this_computer_window_state.text = "Unable to get information required to create localhost. This is probably, because you're not connected to any network.".to_string();
+        app_context.ui_state.add_this_computer_window_state.show("Unable to get information required to create localhost. This is probably, because you're not connected to any network.".to_string());
         return;
     }
 
@@ -21,8 +20,7 @@ pub fn add_localhost_pc(app_context: &mut WorkspaceContext) {
         .node_references()
         .any(|s| s.1.data().unwrap().is_localhost)
     {
-        app_context.ui_state.add_this_computer_window_state.open = true;
-        app_context.ui_state.add_this_computer_window_state.text = "Unable to create new instance of this computer, since it already exists. Before creating a new one, please make sure to remove the old instance.".to_string();
+        app_context.ui_state.add_this_computer_window_state.show("Unable to create new instance of this computer, since it already exists. Before creating a new one, please make sure to remove the old instance.".to_string());
         return;
     }
 
@@ -33,8 +31,7 @@ pub fn add_localhost_pc(app_context: &mut WorkspaceContext) {
         .add_node(new_localhost.clone(), None)
         .is_none()
     {
-        app_context.ui_state.add_this_computer_window_state.open = true;
-        app_context.ui_state.add_this_computer_window_state.text = format!("Unable to create new instance of this computer, since your IP ({}) already exists as a node. Before creating a new one, please make sure to remove the old instance.", new_localhost.ip);
+        app_context.ui_state.add_this_computer_window_state.show(format!("Unable to create new instance of this computer, since your IP ({}) already exists as a node. Before creating a new one, please make sure to remove the old instance.", new_localhost.ip));
     }
 }
 

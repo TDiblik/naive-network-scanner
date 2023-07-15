@@ -3,7 +3,13 @@ use log::info;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::utils::general::add_localhost_pc;
+use crate::utils::{
+    general::add_localhost_pc,
+    icmp::{
+        DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS, DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
+    },
+    ip::ping_ip_list,
+};
 
 use super::{
     menu_bar::{file_menu_button::FileMenuButton, view_menu_button::ViewMenuButton},
@@ -140,6 +146,38 @@ impl WorkspaceContext {
             }
             if ui.button("Add a new device").clicked() {
                 self.ui_state.add_new_device_window_state.open = true;
+            }
+            if ui
+                .button("Refresh connection status to all devices (soft)")
+                .clicked()
+            {
+                ping_ip_list(
+                    Arc::clone(&self.app_state.network_topology.graph),
+                    Arc::clone(&self.app_state.status_info),
+                    self.app_state
+                        .network_topology
+                        .get_all_ips_except_localhost(),
+                    DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
+                    DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS,
+                    true,
+                    false,
+                );
+            }
+            if ui
+                .button("Refresh connection status to all devices (hard)")
+                .clicked()
+            {
+                ping_ip_list(
+                    Arc::clone(&self.app_state.network_topology.graph),
+                    Arc::clone(&self.app_state.status_info),
+                    self.app_state
+                        .network_topology
+                        .get_all_ips_except_localhost(),
+                    DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
+                    DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS,
+                    false,
+                    true,
+                );
             }
         });
     }

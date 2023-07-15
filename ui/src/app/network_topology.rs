@@ -199,6 +199,25 @@ impl NetworkTopology {
         Some((node_index, node_value.clone()))
     }
 
+    pub fn get_all_ips_except_localhost(&mut self) -> Vec<IpAddr> {
+        Self::get_all_ips_except_localhost_generic(&mut self.graph)
+    }
+
+    pub fn get_all_ips_except_localhost_generic(graph: &mut NetworkTopologyGraph) -> Vec<IpAddr> {
+        graph
+            .lock()
+            .unwrap()
+            .node_references()
+            .filter_map(|s| {
+                if !s.1.data().unwrap().is_localhost {
+                    Some(s.1.data().unwrap().ip)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     pub fn add_node(
         &mut self,
         new_topology_node: NetworkTopologyNode,

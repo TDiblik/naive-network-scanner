@@ -15,7 +15,6 @@ use std::{
     net::IpAddr,
     sync::{Arc, Mutex},
 };
-use uuid::Uuid;
 
 lazy_static! {
     pub static ref EGUI_GRAPH_SETTINGS_STYLE: SettingsStyle = SettingsStyle::new()
@@ -35,8 +34,7 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub struct NetworkTopologyNode {
-    pub id: Uuid,
-    pub ip: IpAddr,
+    pub ip: IpAddr, // ip == id ; has to be unique
     pub notes: String,
     pub is_localhost: bool, // True => node is a machine that's running this program
 }
@@ -56,7 +54,6 @@ impl NetworkTopologyNode {
 
     fn new_internal(ip: IpAddr, notes: String, is_localhost: bool) -> Self {
         Self {
-            id: Uuid::new_v4(),
             ip,
             notes,
             is_localhost,

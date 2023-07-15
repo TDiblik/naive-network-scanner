@@ -1,3 +1,4 @@
+use log::info;
 use pnet::packet::icmp::IcmpTypes;
 use std::net::IpAddr;
 
@@ -11,17 +12,29 @@ use crate::{
     utils::icmp::send_icmp_echo_request_ping,
 };
 
-pub struct ScanningOptions {
-    // TODO: Implemenet lol
-    use_multithreading: bool,
-    multithreading_number_of_threds: u8,
-}
-
+// TODO: Implement option for multi threading
+// TODO: Implement option to change pc mac address for each ping
 pub fn ping_ip_range(
     mut graph_ref: NetworkTopologyGraph,
     status_info_ref: StatusInfoRef,
-    ips_to_ping: Vec<IpAddr>, // scanning_options: ScanningOptions,
+    ips_to_ping: Vec<IpAddr>,
 ) {
+    if ips_to_ping.is_empty() {
+        AppState::log_to_status_generic(
+            &status_info_ref,
+            StatusMessage::Info("Didn't receive any ips to ping. Not performing ping.".to_owned()),
+        );
+        return;
+    }
+    AppState::log_to_status_generic(
+        &status_info_ref,
+        StatusMessage::Info(format!(
+            "Initiating ip ping against {} hosts.",
+            ips_to_ping.len()
+        )),
+    );
+    info!("Starting ip scan on following ips: {:?}", ips_to_ping);
+
     std::thread::spawn(move || {
         let mut number_of_hosts = 0;
         let localhost_node_index =

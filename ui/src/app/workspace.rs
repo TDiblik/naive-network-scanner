@@ -3,12 +3,13 @@ use log::info;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::utils::{general::add_localhost_pc, ip::ping_ip_range};
+use crate::utils::general::add_localhost_pc;
 
 use super::{
     menu_bar::{file_menu_button::FileMenuButton, view_menu_button::ViewMenuButton},
     modals::{
-        add_new_device_window::AddNewDeviceWindowState, generic_info_window::GenericInfoWindowState,
+        add_new_device_window::AddNewDeviceWindowState,
+        generic_info_window::GenericInfoWindowState, scan_ip_range_window::ScanIpRangeWindowState,
     },
     network_topology::{
         NetworkTopology, EGUI_GRAPH_SETTINGS_INTERACTIONS, EGUI_GRAPH_SETTINGS_NAVIGATION,
@@ -39,7 +40,10 @@ impl Workspace {
             ui_state: UIState {
                 open_tabs: tabs_context.default_tabs.clone(),
                 add_new_device_window_state: AddNewDeviceWindowState::default(),
-                add_this_computer_state: GenericInfoWindowState::new("Cannot add this computer"),
+                add_this_computer_window_state: GenericInfoWindowState::new(
+                    "Cannot add this computer",
+                ),
+                scan_ip_range_window_state: ScanIpRangeWindowState::default(),
             },
         };
 
@@ -72,8 +76,10 @@ impl eframe::App for Workspace {
                 // "Add this computer" info modal window
                 GenericInfoWindowState::render(
                     ctx,
-                    &mut self.context.ui_state.add_this_computer_state,
+                    &mut self.context.ui_state.add_this_computer_window_state,
                 );
+                // "IP Range Scanning options" model window
+                ScanIpRangeWindowState::render(ctx, &mut self.context);
 
                 // Docking
                 let mut dock_style = egui_dock::Style::from_egui(ui.style());
@@ -166,23 +172,7 @@ impl WorkspaceContext {
     fn render_discovery_inside_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Scan IP Range").clicked() {
-                ping_ip_range(
-                    Arc::clone(&self.app_state.network_topology.graph),
-                    Arc::clone(&self.app_state.status_info),
-                    vec![
-                        "192.168.0.0".parse().unwrap(),
-                        "192.168.0.1".parse().unwrap(),
-                        "192.168.0.2".parse().unwrap(),
-                        "192.168.0.3".parse().unwrap(),
-                        "192.168.0.4".parse().unwrap(),
-                        "192.168.0.5".parse().unwrap(),
-                        "192.168.0.6".parse().unwrap(),
-                        "192.168.0.7".parse().unwrap(),
-                        "192.168.0.8".parse().unwrap(),
-                        "192.168.0.9".parse().unwrap(),
-                        "192.168.0.10".parse().unwrap(),
-                    ],
-                );
+                self.ui_state.scan_ip_range_window_state.open = true;
             }
         });
     }

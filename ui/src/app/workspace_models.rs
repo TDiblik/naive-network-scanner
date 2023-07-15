@@ -4,7 +4,8 @@ use crate::utils::constants::LINE_ENDING;
 
 use super::{
     modals::{
-        add_new_device_window::AddNewDeviceWindowState, generic_info_window::GenericInfoWindowState,
+        add_new_device_window::AddNewDeviceWindowState,
+        generic_info_window::GenericInfoWindowState, scan_ip_range_window::ScanIpRangeWindowState,
     },
     network_topology::NetworkTopology,
     workspace_tab::WorkspaceTab,
@@ -61,13 +62,13 @@ impl AppState {
         new_log_line.push_str(": ");
         let line_to_append: String = info_to_append.clone().into();
         new_log_line.push_str(&line_to_append);
-        new_log_line.push_str(LINE_ENDING);
 
         match info_to_append {
             StatusMessage::Info(_) => info!("{}", new_log_line),
             StatusMessage::Warn(_) => warn!("{}", new_log_line),
             StatusMessage::Err(_) => error!("{}", new_log_line),
         }
+        new_log_line.push_str(LINE_ENDING);
 
         let mut status_info_lock = status_info_ref.lock().unwrap();
         status_info_lock.text.push_str(&new_log_line);
@@ -78,5 +79,6 @@ impl AppState {
 pub struct UIState {
     pub open_tabs: Vec<WorkspaceTab>,
     pub add_new_device_window_state: AddNewDeviceWindowState,
-    pub add_this_computer_state: GenericInfoWindowState,
+    pub add_this_computer_window_state: GenericInfoWindowState,
+    pub scan_ip_range_window_state: ScanIpRangeWindowState,
 }

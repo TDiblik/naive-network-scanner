@@ -6,7 +6,12 @@ use std::{net::IpAddr, str::FromStr};
 
 use crate::{
     app::{network_topology::NetworkTopologyNode, workspace_models::WorkspaceContext},
-    utils::constants::{WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH},
+    utils::{
+        constants::{
+            ACTION_SPACER, DEFAULT_SPACER, WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH,
+        },
+        general::render_validation_err,
+    },
 };
 
 const ADD_NEW_DEVICE_WINDOW_STARTING_POS: eframe::epaint::Pos2 = eframe::epaint::Pos2 {
@@ -42,22 +47,24 @@ impl AddNewDeviceWindowState {
                             &mut app_context.ui_state.add_new_device_window_state.ip,
                         );
                     });
-                    if app_context
-                        .ui_state
-                        .add_new_device_window_state
-                        .ip_validation_err
-                    {
-                        ui.colored_label(Color32::RED, "IP is not valid.");
-                    }
-                    ui.add_space(5.0);
+                    render_validation_err(
+                        ui,
+                        app_context
+                            .ui_state
+                            .add_new_device_window_state
+                            .ip_validation_err,
+                        "IP is not valid.",
+                    );
 
+                    ui.add_space(DEFAULT_SPACER);
                     ui.vertical(|ui| {
                         ui.label("Notes");
                         ui.text_edit_multiline(
                             &mut app_context.ui_state.add_new_device_window_state.notes,
                         );
                     });
-                    ui.add_space(10.0);
+
+                    ui.add_space(ACTION_SPACER);
                     if ui.button("Add").clicked() {
                         if let Ok(new_ip) =
                             IpAddr::from_str(&app_context.ui_state.add_new_device_window_state.ip)

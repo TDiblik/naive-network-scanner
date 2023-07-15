@@ -13,3 +13,6 @@ pub const WORKSPACE_WINDOW_HEIGHT: f32 = 1080.0;
 pub const LINE_ENDING: &str = "\r\n";
 #[cfg(not(windows))]
 pub const LINE_ENDING: &str = "\n";
+
+pub const DEFAULT_SPACER: f32 = 5.0;
+pub const ACTION_SPACER: f32 = 10.0;

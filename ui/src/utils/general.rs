@@ -1,3 +1,4 @@
+use eframe::epaint::Color32;
 use petgraph::visit::IntoNodeReferences;
 
 use crate::app::{network_topology::NetworkTopologyNode, workspace_models::WorkspaceContext};
@@ -29,4 +30,10 @@ pub fn add_localhost_pc(app_context: &mut WorkspaceContext) {
         .app_state
         .network_topology
         .add_node(new_localhost.unwrap(), None);
+}
+
+pub fn render_validation_err(ui: &mut eframe::egui::Ui, is_invalid: bool, message: &str) {
+    if is_invalid {
+        ui.colored_label(Color32::RED, message);
+    }
 }

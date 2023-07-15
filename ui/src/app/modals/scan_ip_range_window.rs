@@ -13,7 +13,7 @@ use crate::{
     app::workspace_models::WorkspaceContext,
     utils::{
         constants::{WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH},
-        ip::ping_ip_range,
+        ip::ping_ip_list,
     },
 };
 
@@ -342,7 +342,7 @@ impl ScanIpRangeWindowState {
                         };
 
                         if let Some(ips_to_ping) = ips_to_scan {
-                            ping_ip_range(
+                            ping_ip_list(
                                 Arc::clone(&app_context.app_state.network_topology.graph),
                                 Arc::clone(&app_context.app_state.status_info),
                                 ips_to_ping,

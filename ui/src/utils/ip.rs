@@ -14,7 +14,7 @@ use crate::{
 
 // TODO: Implement option for multi threading
 // TODO: Implement option to change pc mac address for each ping
-pub fn ping_ip_range(
+pub fn ping_ip_list(
     mut graph_ref: NetworkTopologyGraph,
     status_info_ref: StatusInfoRef,
     ips_to_ping: Vec<IpAddr>,

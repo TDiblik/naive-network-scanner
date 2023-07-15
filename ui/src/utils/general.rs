@@ -26,10 +26,16 @@ pub fn add_localhost_pc(app_context: &mut WorkspaceContext) {
         return;
     }
 
-    app_context
+    let new_localhost = new_localhost.unwrap();
+    if app_context
         .app_state
         .network_topology
-        .add_node(new_localhost.unwrap(), None);
+        .add_node(new_localhost.clone(), None)
+        .is_none()
+    {
+        app_context.ui_state.add_this_computer_window_state.open = true;
+        app_context.ui_state.add_this_computer_window_state.text = format!("Unable to create new instance of this computer, since your IP ({}) already exists as a node. Before creating a new one, please make sure to remove the old instance.", new_localhost.ip);
+    }
 }
 
 pub fn render_validation_err(ui: &mut Ui, is_invalid: bool, message: &str) {

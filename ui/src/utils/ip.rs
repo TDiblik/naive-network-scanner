@@ -90,7 +90,8 @@ pub fn ping_ip_list(
                         &mut graph_ref,
                         NetworkTopologyNode::new(ip, "".to_string()),
                         None,
-                    ),
+                    )
+                    .unwrap(), // safe to unwrape, since we're 100% sure the node does not exist yet.
                 };
             if let Some(localhost) = localhost_node_index {
                 if !graph_ref

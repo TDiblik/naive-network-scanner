@@ -21,6 +21,7 @@ pub struct AddNewDeviceWindowState {
     pub open: bool,
     pub ip: String,
     pub ip_validation_err: bool,
+    pub ip_already_exists_err: bool,
     pub notes: String,
 }
 
@@ -60,23 +61,50 @@ impl AddNewDeviceWindowState {
                             &mut app_context.ui_state.add_new_device_window_state.notes,
                         );
                     });
+                    render_validation_err(
+                        ui,
+                        app_context
+                            .ui_state
+                            .add_new_device_window_state
+                            .ip_already_exists_err,
+                        "IP already exists as a node.",
+                    );
 
                     ui.add_space(ACTION_SPACER);
                     if ui.button("Add").clicked() {
+                        app_context
+                            .ui_state
+                            .add_new_device_window_state
+                            .ip_validation_err = false;
+                        app_context
+                            .ui_state
+                            .add_new_device_window_state
+                            .ip_already_exists_err = false;
                         if let Ok(new_ip) =
                             IpAddr::from_str(&app_context.ui_state.add_new_device_window_state.ip)
                         {
-                            app_context.app_state.network_topology.add_node(
-                                NetworkTopologyNode::new(
-                                    new_ip,
-                                    app_context
-                                        .ui_state
-                                        .add_new_device_window_state
-                                        .notes
-                                        .clone(),
-                                ),
-                                None,
-                            );
+                            if app_context
+                                .app_state
+                                .network_topology
+                                .add_node(
+                                    NetworkTopologyNode::new(
+                                        new_ip,
+                                        app_context
+                                            .ui_state
+                                            .add_new_device_window_state
+                                            .notes
+                                            .clone(),
+                                    ),
+                                    None,
+                                )
+                                .is_none()
+                            {
+                                app_context
+                                    .ui_state
+                                    .add_new_device_window_state
+                                    .ip_already_exists_err = true;
+                                return;
+                            }
                             app_context.ui_state.add_new_device_window_state = Default::default();
                         } else {
                             app_context

@@ -172,6 +172,7 @@ impl Default for NetworkTopology {
             NetworkTopologyNode::new(
                 "0.0.0.0".parse().expect("Unable to parse valid ip 0.0.0.0"),
                 "".to_string(),
+                None,
             ),
             Some(Vec2::new(0.0, 0.0)),
         );

@@ -26,8 +26,9 @@ pub struct AddNewDeviceWindowState {
     pub open: bool,
     pub ip: String,
     pub ip_validation_err: bool,
-    pub ip_already_exists_err: bool,
+    pub hostname: String,
     pub notes: String,
+    pub ip_already_exists_err: bool,
     pub ping_after_creation: bool,
 }
 
@@ -61,12 +62,21 @@ impl AddNewDeviceWindowState {
                     );
 
                     ui.add_space(DEFAULT_SPACER);
+                    ui.horizontal(|ui| {
+                        ui.label("Hostname (optional)");
+                        ui.text_edit_singleline(
+                            &mut app_context.ui_state.add_new_device_window_state.hostname,
+                        );
+                    });
+
+                    ui.add_space(DEFAULT_SPACER);
                     ui.vertical(|ui| {
-                        ui.label("Notes");
+                        ui.label("Notes (optional)");
                         ui.text_edit_multiline(
                             &mut app_context.ui_state.add_new_device_window_state.notes,
                         );
                     });
+
                     render_validation_err(
                         ui,
                         app_context
@@ -109,6 +119,13 @@ impl AddNewDeviceWindowState {
                                             .add_new_device_window_state
                                             .notes
                                             .clone(),
+                                        Some(
+                                            app_context
+                                                .ui_state
+                                                .add_new_device_window_state
+                                                .hostname
+                                                .clone(),
+                                        ),
                                     ),
                                     None,
                                 )

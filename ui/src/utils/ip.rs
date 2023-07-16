@@ -6,7 +6,8 @@ use std::net::IpAddr;
 use crate::{
     app::{
         network_topology::{
-            NetworkTopology, NetworkTopologyEdge, NetworkTopologyGraph, NetworkTopologyNode,
+            NetworkTopology, NetworkTopologyEdge, NetworkTopologyGraph, NetworkTopologyGraphNode,
+            NetworkTopologyNode,
         },
         workspace_models::{AppState, StatusInfoRef, StatusMessage},
     },
@@ -95,7 +96,7 @@ pub fn ping_ip_list(
                     Some((node_index, _)) => node_index,
                     None => NetworkTopology::add_node_generic(
                         &mut graph_ref,
-                        NetworkTopologyNode::new(ip, "".to_string()),
+                        NetworkTopologyNode::new(ip, "".to_string(), None),
                         None,
                     )
                     .unwrap(), // safe to unwrape, since we're 100% sure the node does not exist yet.
@@ -149,6 +150,81 @@ pub fn ping_ip_list(
                 "Finished scanning. Found {} reachable IPs",
                 reachable_ips.len()
             )),
+        );
+    });
+}
+
+pub fn update_hostname_list(
+    mut graph_ref: NetworkTopologyGraph,
+    status_info_ref: StatusInfoRef,
+    ips: Vec<IpAddr>,
+) {
+    std::thread::spawn(move || {
+        let nodes_to_test = NetworkTopology::get_all_nodes_except_localhost_generic(&mut graph_ref)
+            .iter()
+            .filter(|s| ips.contains(&s.1.data().unwrap().ip))
+            .cloned()
+            .collect::<Vec<NetworkTopologyGraphNode>>();
+
+        if nodes_to_test.is_empty() {
+            AppState::log_to_status_generic(
+                &status_info_ref,
+                StatusMessage::Info(
+                    "Didn't find intercept of ips and nodes in graph. Not performing hostname resolution against graph.".to_owned(),
+                ),
+            );
+            return;
+        }
+        AppState::log_to_status_generic(
+            &status_info_ref,
+            StatusMessage::Info(format!(
+                "Initiating addr lookup against {} hosts.",
+                nodes_to_test.len()
+            )),
+        );
+        info!(
+            "Starting addr lookup on following nodes: {:?}",
+            nodes_to_test
+        );
+
+        for node in nodes_to_test {
+            let ip_to_test = node.1.data().unwrap().ip;
+            AppState::log_to_status_generic(
+                &status_info_ref,
+                StatusMessage::Info(format!(
+                    "Performing DNS lookup-up for hostname for {}",
+                    ip_to_test
+                )),
+            );
+
+            let Ok(new_hostname) = dns_lookup::lookup_addr(&ip_to_test) else {
+                AppState::log_to_status_generic(
+                    &status_info_ref,
+                    StatusMessage::Info(format!("Unable to determine hostname for {}", ip_to_test)),
+                );
+                continue;
+            };
+
+            let mut graph_lock = graph_ref.lock().unwrap();
+            let node_to_update = graph_lock.node_weight_mut(node.0).unwrap();
+            let mut new_data = node_to_update.data().unwrap().clone();
+            new_data.hostname = new_hostname.clone();
+            node_to_update.set_data(Some(new_data));
+            drop(graph_lock);
+
+            NetworkTopology::update_node_label_generic(&mut graph_ref, node.0);
+            AppState::log_to_status_generic(
+                &status_info_ref,
+                StatusMessage::Info(format!(
+                    "Hostname for {} is \"{}\"",
+                    ip_to_test, new_hostname
+                )),
+            );
+        }
+
+        AppState::log_to_status_generic(
+            &status_info_ref,
+            StatusMessage::Info("Finished addr lookup.".to_string()),
         );
     });
 }

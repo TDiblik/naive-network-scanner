@@ -1,4 +1,5 @@
 use crossbeam::channel::{unbounded, Receiver, Sender};
+use dns_lookup::get_hostname;
 use eframe::epaint::{Color32, Vec2};
 use egui_graphs::{
     to_input_graph, Change, Graph, SettingsInteraction, SettingsNavigation, SettingsStyle,
@@ -15,6 +16,8 @@ use std::{
     net::IpAddr,
     sync::{Arc, Mutex},
 };
+
+use crate::utils::constants::LINE_ENDING;
 
 lazy_static! {
     pub static ref EGUI_GRAPH_SETTINGS_STYLE: SettingsStyle = SettingsStyle::new()
@@ -37,26 +40,35 @@ pub struct NetworkTopologyNode {
     pub ip: IpAddr, // ip == id ; has to be unique
     pub notes: String,
     pub is_localhost: bool, // True => node is a machine that's running this program
+    pub hostname: String,
 }
 impl NetworkTopologyNode {
-    pub fn new(ip: IpAddr, notes: String) -> Self {
-        Self::new_internal(ip, notes, false)
+    pub fn new(ip: IpAddr, notes: String, hostname: Option<String>) -> Self {
+        Self::new_internal(ip, notes, false, hostname)
     }
 
     pub fn new_my_pc() -> anyhow::Result<Self> {
         let my_local_ip = local_ip()?;
+        let my_hostname = get_hostname().ok();
         Ok(Self::new_internal(
             my_local_ip,
             "This is the current pc.".to_string(),
             true,
+            my_hostname,
         ))
     }
 
-    fn new_internal(ip: IpAddr, notes: String, is_localhost: bool) -> Self {
+    fn new_internal(
+        ip: IpAddr,
+        notes: String,
+        is_localhost: bool,
+        hostname: Option<String>,
+    ) -> Self {
         Self {
             ip,
             notes,
             is_localhost,
+            hostname: hostname.unwrap_or_default(),
         }
     }
 }
@@ -96,6 +108,7 @@ impl Default for NetworkTopology {
                     .parse()
                     .expect("Unable to parse valid ip 192.168.0.1"),
                 "".to_string(),
+                None,
             ),
             Some(Vec2::new(-200.0, 0.0)),
         );
@@ -105,6 +118,7 @@ impl Default for NetworkTopology {
                     .parse()
                     .expect("Unable to parse valid ip 192.168.0.2"),
                 "".to_string(),
+                None,
             ),
             Some(Vec2::new(0.0, -200.0)),
         );
@@ -114,6 +128,7 @@ impl Default for NetworkTopology {
                     .parse()
                     .expect("Unable to parse valid ip 192.168.0.3"),
                 "".to_string(),
+                None,
             ),
             Some(Vec2::new(200.0, 0.0)),
         );
@@ -123,6 +138,7 @@ impl Default for NetworkTopology {
                     .parse()
                     .expect("Unable to parse valid ip 192.168.0.4"),
                 "".to_string(),
+                None,
             ),
             Some(Vec2::new(0.0, 200.0)),
         );
@@ -164,8 +180,8 @@ impl Default for NetworkTopology {
     }
 }
 
-pub type MaybeNetworkTopologyGraphNode =
-    Option<(NodeIndex, egui_graphs::Node<NetworkTopologyNode>)>;
+pub type NetworkTopologyGraphNode = (NodeIndex, egui_graphs::Node<NetworkTopologyNode>);
+pub type MaybeNetworkTopologyGraphNode = Option<NetworkTopologyGraphNode>;
 #[allow(dead_code)]
 impl NetworkTopology {
     pub fn get_localhost_node(&mut self) -> MaybeNetworkTopologyGraphNode {
@@ -199,6 +215,27 @@ impl NetworkTopology {
         Some((node_index, node_value.clone()))
     }
 
+    pub fn get_all_nodes_except_localhost(&mut self) -> Vec<NetworkTopologyGraphNode> {
+        Self::get_all_nodes_except_localhost_generic(&mut self.graph)
+    }
+
+    pub fn get_all_nodes_except_localhost_generic(
+        graph: &mut NetworkTopologyGraph,
+    ) -> Vec<NetworkTopologyGraphNode> {
+        graph
+            .lock()
+            .unwrap()
+            .node_references()
+            .filter_map(|s| {
+                if !s.1.data().unwrap().is_localhost {
+                    Some((s.0, s.1.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     pub fn get_all_ips_except_localhost(&mut self) -> Vec<IpAddr> {
         Self::get_all_ips_except_localhost_generic(&mut self.graph)
     }
@@ -226,6 +263,7 @@ impl NetworkTopology {
         Self::add_node_generic(&mut self.graph, new_topology_node, location)
     }
 
+    // TODO: Spanwing nodes like this is messy, but looks work well enough atm
     pub fn add_node_generic(
         graph: &mut NetworkTopologyGraph,
         new_topology_node: NetworkTopologyNode,
@@ -233,12 +271,12 @@ impl NetworkTopology {
     ) -> Option<NodeIndex> {
         let mut rng = rand::thread_rng(); // TODO: could be optimized ? Idk if it's creating a new instance every time :/
         let spawn_location = location.unwrap_or(Vec2::new(
-            rng.gen_range(-200.0..200.0),
-            rng.gen_range(-200.0..200.0),
+            rng.gen_range(-400.0..400.0),
+            rng.gen_range(-400.0..400.0),
         ));
 
         let new_node = egui_graphs::Node::new(spawn_location, new_topology_node.clone())
-            .with_label(new_topology_node.ip.to_string())
+            .with_label(Self::generate_node_label(&new_topology_node))
             .with_color(if new_topology_node.is_localhost {
                 Color32::from_rgb(238, 108, 77) // TODO: Decide between (238, 108, 77) OR (152, 193, 217) OR (61, 90, 128)
             } else {
@@ -290,5 +328,28 @@ impl NetworkTopology {
         {
             graph_lock.remove_edge(edge);
         }
+    }
+
+    pub fn update_node_label(&mut self, node: NodeIndex) {
+        Self::update_node_label_generic(&mut self.graph, node)
+    }
+
+    pub fn update_node_label_generic(graph: &mut NetworkTopologyGraph, node: NodeIndex) {
+        let mut graph_lock = graph.lock().unwrap();
+        let Some(node_to_update) = graph_lock.node_weight_mut(node) else {
+            return;
+        };
+        *node_to_update =
+            node_to_update.with_label(Self::generate_node_label(node_to_update.data().unwrap()));
+    }
+
+    fn generate_node_label(node_data: &NetworkTopologyNode) -> String {
+        let mut new_label = node_data.ip.to_string();
+        if !node_data.hostname.is_empty() {
+            new_label.push_str(LINE_ENDING);
+            new_label.push_str(&node_data.hostname);
+        }
+
+        new_label
     }
 }

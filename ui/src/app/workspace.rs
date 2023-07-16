@@ -8,7 +8,7 @@ use crate::utils::{
     icmp::{
         DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS, DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
     },
-    ip::ping_ip_list,
+    ip::{ping_ip_list, update_hostname_list},
 };
 
 use super::{
@@ -111,8 +111,9 @@ impl egui_dock::TabViewer for WorkspaceContext {
         match tab.id.as_str() {
             // TODO (chore): Order by default alignment
             "general_tab" => self.render_general_tab(ui),
-            "topology_overview_tab" => self.render_topology_overview_tab(ui),
+            "discovery_shared_tab" => self.render_discovery_shared_tab(ui),
             "discovery_inside_tab" => self.render_discovery_inside_tab(ui),
+            "topology_overview_tab" => self.render_topology_overview_tab(ui),
             "status_tab" => self.render_status_tab(ui),
             // "Simple Demo" => self.simple_demo(ui),
             // "Style Editor" => self.style_editor(ui),
@@ -136,9 +137,8 @@ impl egui_dock::TabViewer for WorkspaceContext {
     }
 }
 
+// TODO (chore): Order render functions by default alignment
 impl WorkspaceContext {
-    // TODO (chore): Order render functions by default alignment
-
     fn render_general_tab(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Add this computer").clicked() {
@@ -182,6 +182,31 @@ impl WorkspaceContext {
         });
     }
 
+    fn render_discovery_shared_tab(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("Retrieve hostnames (all devices)").clicked() {
+                update_hostname_list(
+                    Arc::clone(&self.app_state.network_topology.graph),
+                    Arc::clone(&self.app_state.status_info),
+                    self.app_state
+                        .network_topology
+                        .get_all_nodes_except_localhost()
+                        .iter()
+                        .map(|s| s.1.data().unwrap().ip)
+                        .collect(),
+                );
+            }
+        });
+    }
+
+    fn render_discovery_inside_tab(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("Scan IP Range").clicked() {
+                self.ui_state.scan_ip_range_window_state.open = true;
+            }
+        });
+    }
+
     fn render_topology_overview_tab(&mut self, ui: &mut egui::Ui) {
         ui.add(
             &mut egui_graphs::GraphView::new(
@@ -205,14 +230,6 @@ impl WorkspaceContext {
             // TODO: Open windows with device and it's settings.
             info!("{:?}", node)
         }
-    }
-
-    fn render_discovery_inside_tab(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            if ui.button("Scan IP Range").clicked() {
-                self.ui_state.scan_ip_range_window_state.open = true;
-            }
-        });
     }
 
     fn render_status_tab(&mut self, ui: &mut egui::Ui) {

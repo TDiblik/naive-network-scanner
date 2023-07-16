@@ -310,7 +310,7 @@ impl NetworkTopology {
         to: NodeIndex,
         weight: NetworkTopologyEdge,
     ) -> EdgeIndex {
-        let new_edge = egui_graphs::Edge::new(weight);
+        let new_edge = egui_graphs::Edge::new(weight).with_width(0.2);
 
         graph.lock().unwrap().add_edge(from, to, new_edge)
     }

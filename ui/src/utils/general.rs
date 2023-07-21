@@ -1,7 +1,10 @@
 use eframe::{egui::Ui, epaint::Color32};
 use petgraph::visit::IntoNodeReferences;
 
-use crate::app::{network_topology::NetworkTopologyNode, workspace_models::WorkspaceContext};
+use crate::app::{
+    network_topology::{NetworkTopology, NetworkTopologyNode},
+    workspace_models::WorkspaceContext,
+};
 
 pub fn add_localhost_pc(app_context: &mut WorkspaceContext) {
     let new_localhost = NetworkTopologyNode::new_my_pc();
@@ -25,11 +28,12 @@ pub fn add_localhost_pc(app_context: &mut WorkspaceContext) {
     }
 
     let new_localhost = new_localhost.unwrap();
-    if app_context
-        .app_state
-        .network_topology
-        .add_node(new_localhost.clone(), None)
-        .is_none()
+    if NetworkTopology::add_node(
+        &mut app_context.app_state.network_topology.graph,
+        new_localhost.clone(),
+        None,
+    )
+    .is_none()
     {
         app_context.ui_state.add_this_computer_window_state.show(format!("Unable to create new instance of this computer, since your IP ({}) already exists as a node. Before creating a new one, please make sure to remove the old instance.", new_localhost.ip));
     }

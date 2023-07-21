@@ -4,7 +4,7 @@ use crate::utils::constants::LINE_ENDING;
 
 use super::{
     modals::{
-        add_new_device_window::AddNewDeviceWindowState,
+        add_new_device_window::AddNewDeviceWindowState, device_window_state::DeviceWindowState,
         generic_info_window::GenericInfoWindowState, scan_ip_range_window::ScanIpRangeWindowState,
     },
     network_topology::NetworkTopology,
@@ -81,4 +81,5 @@ pub struct UIState {
     pub add_new_device_window_state: AddNewDeviceWindowState,
     pub add_this_computer_window_state: GenericInfoWindowState,
     pub scan_ip_range_window_state: ScanIpRangeWindowState,
+    pub device_window_states: Vec<DeviceWindowState>,
 }

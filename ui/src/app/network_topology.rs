@@ -98,11 +98,16 @@ impl Default for NetworkTopology {
         };
 
         if let Ok(new_my_pc_node) = NetworkTopologyNode::new_my_pc() {
-            new_topology.add_node(new_my_pc_node, Some(Vec2::new(0.0, 0.0)));
+            NetworkTopology::add_node(
+                &mut new_topology.graph,
+                new_my_pc_node,
+                Some(Vec2::new(0.0, 0.0)),
+            );
         } else {
             warn!("Unable to create new_my_pc_node for development purposes. This means that local_ip function likelly does not work atm.");
         }
-        new_topology.add_node(
+        NetworkTopology::add_node(
+            &mut new_topology.graph,
             NetworkTopologyNode::new(
                 "192.168.0.1"
                     .parse()
@@ -112,7 +117,8 @@ impl Default for NetworkTopology {
             ),
             Some(Vec2::new(-200.0, 0.0)),
         );
-        new_topology.add_node(
+        NetworkTopology::add_node(
+            &mut new_topology.graph,
             NetworkTopologyNode::new(
                 "192.168.0.2"
                     .parse()
@@ -122,7 +128,8 @@ impl Default for NetworkTopology {
             ),
             Some(Vec2::new(0.0, -200.0)),
         );
-        new_topology.add_node(
+        NetworkTopology::add_node(
+            &mut new_topology.graph,
             NetworkTopologyNode::new(
                 "192.168.0.3"
                     .parse()
@@ -132,7 +139,8 @@ impl Default for NetworkTopology {
             ),
             Some(Vec2::new(200.0, 0.0)),
         );
-        new_topology.add_node(
+        NetworkTopology::add_node(
+            &mut new_topology.graph,
             NetworkTopologyNode::new(
                 "192.168.0.4"
                     .parse()
@@ -168,7 +176,8 @@ impl Default for NetworkTopology {
         };
 
         // TODO: Currentlly, egui_graph crashes for some reason, when I create new graph without nodes and then try to add some, so I decided to create dummy node. Try removing this line when it hits 1.0 / open issue / open PR. I don't want to deal with it rn.
-        new_topology.add_node(
+        NetworkTopology::add_node(
+            &mut new_topology.graph,
             NetworkTopologyNode::new(
                 "0.0.0.0".parse().expect("Unable to parse valid ip 0.0.0.0"),
                 "".to_string(),
@@ -183,15 +192,8 @@ impl Default for NetworkTopology {
 
 pub type NetworkTopologyGraphNode = (NodeIndex, egui_graphs::Node<NetworkTopologyNode>);
 pub type MaybeNetworkTopologyGraphNode = Option<NetworkTopologyGraphNode>;
-#[allow(dead_code)]
 impl NetworkTopology {
-    pub fn get_localhost_node(&mut self) -> MaybeNetworkTopologyGraphNode {
-        Self::get_localhosts_node_generic(&mut self.graph)
-    }
-
-    pub fn get_localhosts_node_generic(
-        graph: &mut NetworkTopologyGraph,
-    ) -> MaybeNetworkTopologyGraphNode {
+    pub fn get_localhosts_node(graph: &mut NetworkTopologyGraph) -> MaybeNetworkTopologyGraphNode {
         let graph_lock = graph.lock().unwrap();
         let (node_index, node_value) = graph_lock
             .node_references()
@@ -200,11 +202,7 @@ impl NetworkTopology {
         Some((node_index, node_value.clone()))
     }
 
-    pub fn get_node_by_ip(&mut self, ip: IpAddr) -> MaybeNetworkTopologyGraphNode {
-        Self::get_node_by_ip_generic(&mut self.graph, ip)
-    }
-
-    pub fn get_node_by_ip_generic(
+    pub fn get_node_by_ip(
         graph: &mut NetworkTopologyGraph,
         ip: IpAddr,
     ) -> MaybeNetworkTopologyGraphNode {
@@ -216,11 +214,7 @@ impl NetworkTopology {
         Some((node_index, node_value.clone()))
     }
 
-    pub fn get_all_nodes_except_localhost(&mut self) -> Vec<NetworkTopologyGraphNode> {
-        Self::get_all_nodes_except_localhost_generic(&mut self.graph)
-    }
-
-    pub fn get_all_nodes_except_localhost_generic(
+    pub fn get_all_nodes_except_localhost(
         graph: &mut NetworkTopologyGraph,
     ) -> Vec<NetworkTopologyGraphNode> {
         graph
@@ -237,11 +231,7 @@ impl NetworkTopology {
             .collect()
     }
 
-    pub fn get_all_ips_except_localhost(&mut self) -> Vec<IpAddr> {
-        Self::get_all_ips_except_localhost_generic(&mut self.graph)
-    }
-
-    pub fn get_all_ips_except_localhost_generic(graph: &mut NetworkTopologyGraph) -> Vec<IpAddr> {
+    pub fn get_all_ips_except_localhost(graph: &mut NetworkTopologyGraph) -> Vec<IpAddr> {
         graph
             .lock()
             .unwrap()
@@ -256,16 +246,8 @@ impl NetworkTopology {
             .collect()
     }
 
-    pub fn add_node(
-        &mut self,
-        new_topology_node: NetworkTopologyNode,
-        location: Option<Vec2>,
-    ) -> Option<NodeIndex> {
-        Self::add_node_generic(&mut self.graph, new_topology_node, location)
-    }
-
     // TODO: Spanwing nodes like this is messy, but looks work well enough atm
-    pub fn add_node_generic(
+    pub fn add_node(
         graph: &mut NetworkTopologyGraph,
         new_topology_node: NetworkTopologyNode,
         location: Option<Vec2>,
@@ -296,16 +278,9 @@ impl NetworkTopology {
         // TODO: Graph should re-zoom to fit all
     }
 
-    pub fn add_edge(
-        &mut self,
-        from: NodeIndex,
-        to: NodeIndex,
-        weight: NetworkTopologyEdge,
-    ) -> EdgeIndex {
-        Self::add_edge_generic(&mut self.graph, from, to, weight)
-    }
+    // pub fn remove_node(graph: &mut NetworkTopologyGraph, node: NodeIndex) {}
 
-    pub fn add_edge_generic(
+    pub fn add_edge(
         graph: &mut NetworkTopologyGraph,
         from: NodeIndex,
         to: NodeIndex,
@@ -316,11 +291,7 @@ impl NetworkTopology {
         graph.lock().unwrap().add_edge(from, to, new_edge)
     }
 
-    pub fn remove_edges_from_node(&mut self, from: NodeIndex) {
-        Self::remove_edges_from_node_generic(&mut self.graph, from)
-    }
-
-    pub fn remove_edges_from_node_generic(graph: &mut NetworkTopologyGraph, from: NodeIndex) {
+    pub fn remove_edges_from_node(graph: &mut NetworkTopologyGraph, from: NodeIndex) {
         let mut graph_lock = graph.lock().unwrap();
         for edge in graph_lock
             .edges(from)
@@ -331,11 +302,7 @@ impl NetworkTopology {
         }
     }
 
-    pub fn update_node_label(&mut self, node: NodeIndex) {
-        Self::update_node_label_generic(&mut self.graph, node)
-    }
-
-    pub fn update_node_label_generic(graph: &mut NetworkTopologyGraph, node: NodeIndex) {
+    pub fn update_node_label(graph: &mut NetworkTopologyGraph, node: NodeIndex) {
         let mut graph_lock = graph.lock().unwrap();
         let Some(node_to_update) = graph_lock.node_weight_mut(node) else {
             return;

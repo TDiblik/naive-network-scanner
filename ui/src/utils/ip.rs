@@ -44,15 +44,14 @@ pub fn ping_ip_list(
     std::thread::spawn(move || {
         let mut reachable_ips = vec![];
         let mut unreachable_ips = vec![];
-        let localhost_node_index =
-            match NetworkTopology::get_localhosts_node_generic(&mut graph_ref) {
-                Some(s) => Some(s.0),
-                None => None,
-            };
+        let localhost_node_index = match NetworkTopology::get_localhosts_node(&mut graph_ref) {
+            Some(s) => Some(s.0),
+            None => None,
+        };
 
         if reset_connectivity_status {
             if let Some(localhost) = localhost_node_index {
-                NetworkTopology::remove_edges_from_node_generic(&mut graph_ref, localhost);
+                NetworkTopology::remove_edges_from_node(&mut graph_ref, localhost);
             }
         }
 
@@ -91,23 +90,22 @@ pub fn ping_ip_list(
                 continue;
             }
 
-            let target_node_index =
-                match NetworkTopology::get_node_by_ip_generic(&mut graph_ref, ip) {
-                    Some((node_index, _)) => node_index,
-                    None => NetworkTopology::add_node_generic(
-                        &mut graph_ref,
-                        NetworkTopologyNode::new(ip, "".to_string(), None),
-                        None,
-                    )
-                    .unwrap(), // safe to unwrape, since we're 100% sure the node does not exist yet.
-                };
+            let target_node_index = match NetworkTopology::get_node_by_ip(&mut graph_ref, ip) {
+                Some((node_index, _)) => node_index,
+                None => NetworkTopology::add_node(
+                    &mut graph_ref,
+                    NetworkTopologyNode::new(ip, "".to_string(), None),
+                    None,
+                )
+                .unwrap(), // safe to unwrape, since we're 100% sure the node does not exist yet.
+            };
             if let Some(localhost) = localhost_node_index {
                 if !graph_ref
                     .lock()
                     .unwrap()
                     .contains_edge(localhost, target_node_index)
                 {
-                    NetworkTopology::add_edge_generic(
+                    NetworkTopology::add_edge(
                         &mut graph_ref,
                         localhost,
                         target_node_index,
@@ -160,7 +158,7 @@ pub fn update_hostname_list(
     ips: Vec<IpAddr>,
 ) {
     std::thread::spawn(move || {
-        let nodes_to_test = NetworkTopology::get_all_nodes_except_localhost_generic(&mut graph_ref)
+        let nodes_to_test = NetworkTopology::get_all_nodes_except_localhost(&mut graph_ref)
             .iter()
             .filter(|s| ips.contains(&s.1.data().unwrap().ip))
             .cloned()
@@ -212,7 +210,7 @@ pub fn update_hostname_list(
             node_to_update.set_data(Some(new_data));
             drop(graph_lock);
 
-            NetworkTopology::update_node_label_generic(&mut graph_ref, node.0);
+            NetworkTopology::update_node_label(&mut graph_ref, node.0);
             AppState::log_to_status_generic(
                 &status_info_ref,
                 StatusMessage::Info(format!(

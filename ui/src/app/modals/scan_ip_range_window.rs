@@ -10,17 +10,10 @@ use std::{
 use crate::{
     app::workspace_models::WorkspaceContext,
     utils::{
-        constants::{
-            ACTION_SPACER, DEFAULT_SPACER, WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH,
-        },
+        constants::{ACTION_SPACER, DEFAULT_SPACER, DEFAULT_WINDOW_STARTING_POS},
         general::{render_numeric_textbox, render_validation_err},
         ip::ping_ip_list,
     },
-};
-
-const SCAN_IP_RANGE_WINDOW_STARTING_POS: eframe::epaint::Pos2 = eframe::epaint::Pos2 {
-    x: WORKSPACE_WINDOW_WIDTH / 2.0 - 150.0,  // TODO: Edit
-    y: WORKSPACE_WINDOW_HEIGHT / 2.0 - 250.0, // TODO: Edit
 };
 
 pub struct ScanIpRangeWindowState {
@@ -86,7 +79,7 @@ impl ScanIpRangeWindowState {
 
         egui::Window::new("IP Range Scanning options")
             .collapsible(false)
-            .default_pos(SCAN_IP_RANGE_WINDOW_STARTING_POS)
+            .default_pos(DEFAULT_WINDOW_STARTING_POS)
             .fixed_size(Vec2::new(275.0, 250.0))
             .open(&mut should_show_window)
             .show(egui_context, |ui| {

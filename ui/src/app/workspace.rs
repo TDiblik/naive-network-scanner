@@ -3,12 +3,16 @@ use log::info;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use crate::utils::{
-    general::add_localhost_pc,
-    icmp::{
-        DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS, DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
+use crate::{
+    app::modals::device_window_state::DeviceWindowState,
+    utils::{
+        general::add_localhost_pc,
+        icmp::{
+            DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS,
+            DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
+        },
+        ip::{ping_ip_list, update_hostname_list},
     },
-    ip::{ping_ip_list, update_hostname_list},
 };
 
 use super::{
@@ -50,6 +54,7 @@ impl Workspace {
                     "Cannot add this computer",
                 ),
                 scan_ip_range_window_state: ScanIpRangeWindowState::default(),
+                device_window_states: vec![],
             },
         };
 
@@ -86,6 +91,10 @@ impl eframe::App for Workspace {
                 );
                 // "IP Range Scanning options" model window
                 ScanIpRangeWindowState::render(ctx, &mut self.context);
+                // Device windows
+                for i in 0..self.context.ui_state.device_window_states.len() {
+                    DeviceWindowState::render(ctx, &mut self.context, i);
+                }
 
                 // Docking
                 let mut dock_style = egui_dock::Style::from_egui(ui.style());
@@ -154,9 +163,9 @@ impl WorkspaceContext {
                 ping_ip_list(
                     Arc::clone(&self.app_state.network_topology.graph),
                     Arc::clone(&self.app_state.status_info),
-                    self.app_state
-                        .network_topology
-                        .get_all_ips_except_localhost(),
+                    NetworkTopology::get_all_ips_except_localhost(
+                        &mut self.app_state.network_topology.graph,
+                    ),
                     DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
                     DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS,
                     true,
@@ -170,9 +179,9 @@ impl WorkspaceContext {
                 ping_ip_list(
                     Arc::clone(&self.app_state.network_topology.graph),
                     Arc::clone(&self.app_state.status_info),
-                    self.app_state
-                        .network_topology
-                        .get_all_ips_except_localhost(),
+                    NetworkTopology::get_all_ips_except_localhost(
+                        &mut self.app_state.network_topology.graph,
+                    ),
                     DEFAULT_PING_ENSURED_CONNECTIVITY_TIMEOUT_MS,
                     DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS,
                     false,
@@ -188,12 +197,12 @@ impl WorkspaceContext {
                 update_hostname_list(
                     Arc::clone(&self.app_state.network_topology.graph),
                     Arc::clone(&self.app_state.status_info),
-                    self.app_state
-                        .network_topology
-                        .get_all_nodes_except_localhost()
-                        .iter()
-                        .map(|s| s.1.data().unwrap().ip)
-                        .collect(),
+                    NetworkTopology::get_all_nodes_except_localhost(
+                        &mut self.app_state.network_topology.graph,
+                    )
+                    .iter()
+                    .map(|s| s.1.data().unwrap().ip)
+                    .collect(),
                 );
             }
         });
@@ -217,6 +226,7 @@ impl WorkspaceContext {
             .with_navigations(&EGUI_GRAPH_SETTINGS_NAVIGATION)
             .with_changes(&self.app_state.network_topology.graph_changes_sender),
         );
+
         for change in self
             .app_state
             .network_topology
@@ -227,8 +237,34 @@ impl WorkspaceContext {
             let egui_graphs::ChangeNode::Clicked { id: node_id } = node else { continue; };
             let graph_lock = self.app_state.network_topology.graph.lock().unwrap();
             let Some(node) = graph_lock.node_weight(node_id) else { continue; };
+            let node_data = node.data().unwrap();
+
+            let mut should_add_new_window = true;
+
+            if self
+                .ui_state
+                .device_window_states
+                .iter()
+                .filter(|s| s.ip() == node_data.ip)
+                .any(|s| !s.is_open())
+            {
+                self.ui_state
+                    .device_window_states
+                    .iter_mut()
+                    .filter(|s| s.ip() == node_data.ip)
+                    .for_each(|s| s.show());
+                should_add_new_window = false;
+            }
+
+            if should_add_new_window {
+                let mut new_window = DeviceWindowState::new(node_data.ip);
+                new_window.show();
+                self.ui_state.device_window_states.push(new_window);
+            }
+
             // TODO: Open windows with device and it's settings.
-            info!("{:?}", node)
+            info!("{:?}", node);
+            dbg!(self.ui_state.device_window_states.len());
         }
     }
 

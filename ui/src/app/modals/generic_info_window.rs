@@ -1,6 +1,6 @@
 use eframe::{egui, epaint::Vec2};
 
-use crate::utils::constants::{WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH};
+use crate::utils::constants::DEFAULT_WINDOW_STARTING_POS;
 
 pub struct GenericInfoWindowState {
     open: bool,
@@ -27,11 +27,6 @@ impl GenericInfoWindowState {
     }
 }
 
-const GENERIC_INFO_WINDOW_STARTING_POS: eframe::epaint::Pos2 = eframe::epaint::Pos2 {
-    x: WORKSPACE_WINDOW_WIDTH / 2.0 - 150.0,
-    y: WORKSPACE_WINDOW_HEIGHT / 2.0 - 150.0,
-};
-
 impl GenericInfoWindowState {
     pub fn render(egui_context: &egui::Context, generic_state: &mut GenericInfoWindowState) {
         let mut should_show_window_internal = generic_state.open;
@@ -41,7 +36,7 @@ impl GenericInfoWindowState {
 
         egui::Window::new(generic_state.title.as_str())
             .collapsible(false)
-            .default_pos(GENERIC_INFO_WINDOW_STARTING_POS)
+            .default_pos(DEFAULT_WINDOW_STARTING_POS)
             .fixed_size(Vec2::new(275.0, 250.0))
             .open(&mut should_show_window_internal)
             .show(egui_context, |ui| {

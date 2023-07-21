@@ -2,11 +2,12 @@ use eframe::{egui, epaint::Vec2};
 use std::{net::IpAddr, str::FromStr, sync::Arc};
 
 use crate::{
-    app::{network_topology::NetworkTopologyNode, workspace_models::WorkspaceContext},
+    app::{
+        network_topology::{NetworkTopology, NetworkTopologyNode},
+        workspace_models::WorkspaceContext,
+    },
     utils::{
-        constants::{
-            ACTION_SPACER, DEFAULT_SPACER, WORKSPACE_WINDOW_HEIGHT, WORKSPACE_WINDOW_WIDTH,
-        },
+        constants::{ACTION_SPACER, DEFAULT_SPACER, DEFAULT_WINDOW_STARTING_POS},
         general::render_validation_err,
         icmp::{
             DEFAULT_PING_ENSURED_CONNECTIVITY_CHECKUP_MS,
@@ -14,11 +15,6 @@ use crate::{
         },
         ip::ping_ip_list,
     },
-};
-
-const ADD_NEW_DEVICE_WINDOW_STARTING_POS: eframe::epaint::Pos2 = eframe::epaint::Pos2 {
-    x: WORKSPACE_WINDOW_WIDTH / 2.0 - 150.0,
-    y: WORKSPACE_WINDOW_HEIGHT / 2.0 - 150.0,
 };
 
 #[derive(Default)]
@@ -41,7 +37,7 @@ impl AddNewDeviceWindowState {
 
         egui::Window::new("Manually add a new device")
             .collapsible(false)
-            .default_pos(ADD_NEW_DEVICE_WINDOW_STARTING_POS)
+            .default_pos(DEFAULT_WINDOW_STARTING_POS)
             .fixed_size(Vec2::new(275.0, 250.0))
             .open(&mut should_show_window)
             .show(egui_context, |ui| {
@@ -108,28 +104,26 @@ impl AddNewDeviceWindowState {
                         if let Ok(new_ip) =
                             IpAddr::from_str(&app_context.ui_state.add_new_device_window_state.ip)
                         {
-                            if app_context
-                                .app_state
-                                .network_topology
-                                .add_node(
-                                    NetworkTopologyNode::new(
-                                        new_ip,
+                            if NetworkTopology::add_node(
+                                &mut app_context.app_state.network_topology.graph,
+                                NetworkTopologyNode::new(
+                                    new_ip,
+                                    app_context
+                                        .ui_state
+                                        .add_new_device_window_state
+                                        .notes
+                                        .clone(),
+                                    Some(
                                         app_context
                                             .ui_state
                                             .add_new_device_window_state
-                                            .notes
+                                            .hostname
                                             .clone(),
-                                        Some(
-                                            app_context
-                                                .ui_state
-                                                .add_new_device_window_state
-                                                .hostname
-                                                .clone(),
-                                        ),
                                     ),
-                                    None,
-                                )
-                                .is_none()
+                                ),
+                                None,
+                            )
+                            .is_none()
                             {
                                 app_context
                                     .ui_state

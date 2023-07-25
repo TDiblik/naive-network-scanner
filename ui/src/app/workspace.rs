@@ -257,14 +257,10 @@ impl WorkspaceContext {
             }
 
             if should_add_new_window {
-                let mut new_window = DeviceWindowState::new(node_data.ip);
+                let mut new_window = DeviceWindowState::new(node_data.ip, node_id);
                 new_window.show();
                 self.ui_state.device_window_states.push(new_window);
             }
-
-            // TODO: Open windows with device and it's settings.
-            info!("{:?}", node);
-            dbg!(self.ui_state.device_window_states.len());
         }
     }
 

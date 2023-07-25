@@ -278,7 +278,9 @@ impl NetworkTopology {
         // TODO: Graph should re-zoom to fit all
     }
 
-    // pub fn remove_node(graph: &mut NetworkTopologyGraph, node: NodeIndex) {}
+    pub fn remove_node(graph: &mut NetworkTopologyGraph, node: NodeIndex) {
+        graph.lock().unwrap().remove_node(node);
+    }
 
     pub fn add_edge(
         graph: &mut NetworkTopologyGraph,

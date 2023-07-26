@@ -14,6 +14,8 @@ use crate::{
     utils::icmp::send_icmp_echo_request_ping,
 };
 
+use super::ports::is_port_open_using_tcp_stream;
+
 // TODO: Implement option for multi threading
 // TODO: Implement option to change pc mac address for each ping
 pub fn ping_ip_list(
@@ -224,5 +226,23 @@ pub fn update_hostname_list(
             &status_info_ref,
             StatusMessage::Info("Finished addr lookup.".to_string()),
         );
+    });
+}
+
+// TODO: Implement option for multi threading
+// TODO: Implement option to change pc mac address for each ping
+pub fn scap_ip_ports(
+    ip: IpAddr,
+    ports: Vec<u16>,
+    // connection_timeout_ms: u64,
+    // read_write_timeout_ms: u64,
+    // should_banner_grab: bool,
+    // should_test_write_resp: bool,
+) {
+    std::thread::spawn(move || {
+        for port in ports {
+            let a = is_port_open_using_tcp_stream(ip, port, 50, 500);
+            // let b = is_udp_port_open(ip, port);
+        }
     });
 }

@@ -1,5 +1,4 @@
 use eframe::egui;
-use log::info;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 

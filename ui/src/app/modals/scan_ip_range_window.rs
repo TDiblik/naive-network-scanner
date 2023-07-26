@@ -10,7 +10,7 @@ use std::{
 use crate::{
     app::workspace_models::WorkspaceContext,
     utils::{
-        constants::{ACTION_SPACER, DEFAULT_SPACER, DEFAULT_WINDOW_STARTING_POS},
+        constants::{ACTION_SPACER, DEFAULT_SPACER, DEFAULT_WINDOW_STARTING_POS, TRASH_ICON},
         general::{render_numeric_textbox, render_validation_err},
         ip::ping_ip_list,
     },
@@ -173,7 +173,7 @@ impl ScanIpRangeWindowState {
                                 ui.horizontal(|ui| {
                                     ui.set_width(ui.available_width() * 0.85);
                                     ui.text_edit_singleline(ip);
-                                    if ui.button("🗑").clicked() {
+                                    if ui.button(TRASH_ICON).clicked() {
                                         index_to_delete = Some(i);
                                     }
                                 });

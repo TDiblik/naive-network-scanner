@@ -21,3 +21,54 @@ pub const LINE_ENDING: &str = "\n";
 
 pub const DEFAULT_SPACER: f32 = 5.0;
 pub const ACTION_SPACER: f32 = 10.0;
+
+pub const TRASH_ICON: &str = "🗑";
+
+pub const MOST_COMMON_PORTS: [u16; 3] = [20, 21, 22];
+// Fill with data from https://www.stationx.net/common-ports-cheat-sheet/
+pub const ALL_COMMON_PORTS_LENGHT: usize = 43;
+pub const ALL_COMMON_PORTS: [(u16, &str); ALL_COMMON_PORTS_LENGHT] = [
+    (0, "telnet"),
+    (0, "ssh"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (999, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+    (0, "your_mom"),
+];

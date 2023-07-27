@@ -234,15 +234,21 @@ pub fn update_hostname_list(
 pub fn scap_ip_ports(
     ip: IpAddr,
     ports: Vec<u16>,
-    // connection_timeout_ms: u64,
-    // read_write_timeout_ms: u64,
-    // should_banner_grab: bool,
-    // should_test_write_resp: bool,
+    connection_timeout_ms: u64,
+    should_banner_grab: bool,
+    should_fuzz: bool,
+    read_write_timeout_ms: u64,
 ) {
     std::thread::spawn(move || {
         for port in ports {
-            let a = is_port_open_using_tcp_stream(ip, port, 50, 500);
-            // let b = is_udp_port_open(ip, port);
+            let a = is_port_open_using_tcp_stream(
+                ip,
+                port,
+                connection_timeout_ms,
+                should_banner_grab,
+                should_fuzz,
+                read_write_timeout_ms,
+            );
         }
     });
 }

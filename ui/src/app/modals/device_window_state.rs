@@ -14,7 +14,7 @@ use crate::{
             ACTION_SPACER, ALL_COMMON_PORTS, ALL_COMMON_PORTS_LENGHT, DEFAULT_SPACER,
             DEFAULT_WINDOW_STARTING_POS, MOST_COMMON_PORTS, TRASH_ICON,
         },
-        general::render_validation_err,
+        general::{render_validation_err, render_numeric_textbox},
         ip::{scap_ip_ports, update_hostname_list},
     },
 };
@@ -51,6 +51,10 @@ pub struct DeviceWindowState {
     port_scan_subwindow_all_common_ports: Vec<(u16, String)>,
     port_scan_subwindow_manual_ports: Vec<String>,
     port_scan_subwindow_manual_ports_validation_err: Vec<String>,
+    port_scan_settings_connection_timeout_ms: String,
+    port_scan_settings_should_banner_grab: bool,
+    port_scan_settings_should_fuzz: bool,
+    port_scan_settings_read_write_timeout_ms: String,
 }
 impl DeviceWindowState {
     pub fn new(ip: IpAddr, node_index: NodeIndex) -> Self {
@@ -75,6 +79,10 @@ impl DeviceWindowState {
             port_scan_subwindow_all_common_ports: Self::get_mapped_all_common_ports(),
             port_scan_subwindow_manual_ports: MOST_COMMON_PORTS.map(|s| s.to_string()).to_vec(),
             port_scan_subwindow_manual_ports_validation_err: vec![],
+            port_scan_settings_connection_timeout_ms: "50".to_owned(),
+            port_scan_settings_should_banner_grab: true,
+            port_scan_settings_should_fuzz: false,
+            port_scan_settings_read_write_timeout_ms: "500".to_owned(),
         }
     }
 
@@ -105,7 +113,7 @@ impl DeviceWindowState {
     ) {
         let (
             window_id,
-            window_id_raw,
+            // window_id_raw,
             device_ip,
             device_node_index,
             mut should_show_window_internal,
@@ -117,7 +125,7 @@ impl DeviceWindowState {
                 .unwrap();
             (
                 current_window.window_id,
-                current_window.window_id_raw,
+                // current_window.window_id_raw,
                 current_window.ip,
                 current_window.node_index,
                 current_window.open,
@@ -342,8 +350,46 @@ impl DeviceWindowState {
                                     }
                                 }
                             }
+
                             ui.separator();
-                            if ui.button("scan").clicked() {
+                            ui.add_space(DEFAULT_SPACER);
+                            ui.horizontal(|ui| {
+                                ui.label("Connection timeout (ms)");
+                                render_numeric_textbox(
+                                    ui,
+                                    &mut window_binding.port_scan_settings_connection_timeout_ms
+                                );
+                            });
+
+                            ui.add_space(DEFAULT_SPACER);
+                            ui.horizontal(|ui| {
+                                ui.checkbox(
+                                    &mut window_binding.port_scan_settings_should_banner_grab,
+                                    "Should try banner grabbing",
+                                );
+                            });
+
+                            ui.add_space(DEFAULT_SPACER);
+                            ui.horizontal(|ui| {
+                                ui.checkbox(
+                                    &mut window_binding.port_scan_settings_should_fuzz,
+                                    "Should try fuzzing (could take a while...)",
+                                );
+                            });
+
+                            if window_binding.port_scan_settings_should_banner_grab || window_binding.port_scan_settings_should_fuzz {
+                                ui.add_space(DEFAULT_SPACER);
+                                ui.horizontal(|ui| {
+                                    ui.label("Socket read/write timeout (ms)");
+                                    render_numeric_textbox(
+                                        ui,
+                                        &mut window_binding.port_scan_settings_read_write_timeout_ms
+                                    );
+                                });
+                            }
+
+                            ui.separator();
+                            if ui.button("Start scan").clicked() {
                                 let ports_to_try = match window_binding
                                     .port_scan_subwindow_selected
                                 {
@@ -406,7 +452,14 @@ impl DeviceWindowState {
                                 };
                                 
                                 if let Some(ports_to_try) = ports_to_try {
-                                    scap_ip_ports(device_ip, ports_to_try);
+                                    scap_ip_ports(
+                                        device_ip, 
+                                        ports_to_try, 
+                                        window_binding.port_scan_settings_connection_timeout_ms.parse().unwrap_or(1), 
+                                        window_binding.port_scan_settings_should_banner_grab, 
+                                        window_binding.port_scan_settings_should_fuzz, 
+                                        window_binding.port_scan_settings_read_write_timeout_ms.parse().unwrap_or(1)
+                                    );
                                 }
                             }
                         }

@@ -8,16 +8,20 @@ pub fn is_port_open_using_tcp_stream(
     ip: IpAddr,
     port: u16,
     connection_timeout_ms: u64,
+    should_banner_grab: bool,
+    should_fuzz: bool,
     read_write_timeout_ms: u64,
-    // should_banner_grab: bool,
-    // should_test_write: bool,
-) -> bool {
+) -> anyhow::Result<bool> {
     let target = SocketAddr::new(ip, port);
     match TcpStream::connect_timeout(&target, Duration::from_millis(connection_timeout_ms)) {
         Ok(mut connected_socket) => {
+            if !should_banner_grab && !should_fuzz {
+                return Ok(true);
+            }
+
             println!("TCP Port {} is open", port);
-            _ = connected_socket
-                .set_write_timeout(Some(Duration::from_millis(read_write_timeout_ms)));
+            connected_socket
+                .set_write_timeout(Some(Duration::from_millis(read_write_timeout_ms)))?;
             _ = connected_socket
                 .set_read_timeout(Some(Duration::from_millis(read_write_timeout_ms)));
 
@@ -48,9 +52,8 @@ pub fn is_port_open_using_tcp_stream(
 
             true
         }
-        Err(e) => {
-            println!("TCP Port {} is not open: {}", port, e);
-            false
-        }
+        Err(e) => false,
     }
 }
+
+fn fuzz_port(socket: &mut TcpStream, port: u16) {}

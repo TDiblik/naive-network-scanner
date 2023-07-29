@@ -59,7 +59,7 @@ pub fn is_port_open_using_tcp_stream(
                 #[cfg(target_os = "linux")]
                 {
                     let grabbed_output = read_everything_from_socket(
-                        &mut connected_socket,
+                        &connected_socket,
                         config.read_write_timeout_ms,
                     );
                     match grabbed_output {
@@ -111,11 +111,11 @@ pub fn is_port_open_using_tcp_stream(
                     #[cfg(target_os = "linux")]
                     {
                         let grabbed_output = read_everything_from_socket(
-                            &mut connected_socket,
+                            &connected_socket,
                             config.read_write_timeout_ms,
                         );
                         match grabbed_output {
-                            Ok(grabbed_output) if !buffer.is_empty() => {
+                            Ok(grabbed_output) if !grabbed_output.is_empty() => {
                                 fuzzing_results.push(FuzzingResult {
                                     command: command_stringified,
                                     result: socket_buffer_to_string(&grabbed_output),
@@ -125,6 +125,7 @@ pub fn is_port_open_using_tcp_stream(
                             Err(e) => {
                                 error!("An error occurred while reading from socket after sending fuzz command \"{}\": {}", command_stringified, e);
                             }
+                            _ => {}
                         }
                     }
                 }

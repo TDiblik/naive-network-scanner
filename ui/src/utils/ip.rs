@@ -14,7 +14,7 @@ use crate::{
     utils::icmp::send_icmp_echo_request_ping,
 };
 
-use super::ports::is_port_open_using_tcp_stream;
+use super::{constants::ALL_COMMON_PORTS, ports::is_port_open_using_tcp_stream};
 
 // TODO: Implement option for multi threading
 // TODO: Implement option to change pc mac address for each ping
@@ -231,24 +231,65 @@ pub fn update_hostname_list(
 
 // TODO: Implement option for multi threading
 // TODO: Implement option to change pc mac address for each ping
+pub type Port = u16;
+pub type FuzzingResults = Option<Vec<String>>;
+pub struct ScanIpPortsConfig {
+    pub connection_timeout_ms: u64,
+    pub should_banner_grab: bool,
+    pub should_fuzz: bool,
+    pub read_write_timeout_ms: u64,
+}
 pub fn scap_ip_ports(
+    mut graph_ref: NetworkTopologyGraph,
+    status_info_ref: StatusInfoRef,
     ip: IpAddr,
-    ports: Vec<u16>,
-    connection_timeout_ms: u64,
-    should_banner_grab: bool,
-    should_fuzz: bool,
-    read_write_timeout_ms: u64,
+    ports: Vec<Port>,
+    config: ScanIpPortsConfig,
 ) {
     std::thread::spawn(move || {
+        let mut reachable_ports = vec![];
+
         for port in ports {
-            let a = is_port_open_using_tcp_stream(
-                ip,
-                port,
-                connection_timeout_ms,
-                should_banner_grab,
-                should_fuzz,
-                read_write_timeout_ms,
+            let port_info = is_port_open_using_tcp_stream(ip, port, &config);
+            if !port_info.0 {
+                AppState::log_to_status_generic(
+                    &status_info_ref,
+                    StatusMessage::Info(format!("Port {port} is unreachable.")),
+                );
+                continue;
+            }
+
+            let recognized_port = recognize_port(&port, &port_info.1, &port_info.2);
+
+            AppState::log_to_status_generic(
+                &status_info_ref,
+                StatusMessage::Info(format!(
+                    "Port {port} is reachable, possible service guess: {recognized_port}."
+                )),
             );
+
+            reachable_ports.push(port_info);
         }
+
+        AppState::log_to_status_generic(
+            &status_info_ref,
+            StatusMessage::Info(format!(
+                "Finished scanning. Found {} reachable ports",
+                reachable_ports.len()
+            )),
+        );
     });
+}
+
+#[allow(unused_variables)]
+fn recognize_port(
+    port: &Port,
+    banner: &Option<String>,
+    fuzzing_results: &FuzzingResults,
+) -> String {
+    let possible_port = ALL_COMMON_PORTS.iter().find(|s| s.0 == *port);
+
+    // TODO: Implement recognition based on banner (and/or) fuzzing results. Then remove the [allow(unused_variables)]
+
+    possible_port.map(|s| s.1).unwrap_or("unknonw").to_owned()
 }

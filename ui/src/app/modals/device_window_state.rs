@@ -15,7 +15,7 @@ use crate::{
             DEFAULT_WINDOW_STARTING_POS, MOST_COMMON_PORTS, TRASH_ICON,
         },
         general::{render_validation_err, render_numeric_textbox},
-        ip::{scap_ip_ports, update_hostname_list},
+        ip::{scap_ip_ports, update_hostname_list, Port, ScanIpPortsConfig},
     },
 };
 
@@ -48,7 +48,7 @@ pub struct DeviceWindowState {
     port_scan_subwindow_range_from_validation_err: bool,
     port_scan_subwindow_range_to: String,
     port_scan_subwindow_range_to_validation_err: bool,
-    port_scan_subwindow_all_common_ports: Vec<(u16, String)>,
+    port_scan_subwindow_all_common_ports: Vec<(Port, String)>,
     port_scan_subwindow_manual_ports: Vec<String>,
     port_scan_subwindow_manual_ports_validation_err: Vec<String>,
     port_scan_settings_connection_timeout_ms: String,
@@ -102,7 +102,7 @@ impl DeviceWindowState {
         self.ip
     }
 
-    fn get_mapped_all_common_ports() -> Vec<(u16, String)> {
+    fn get_mapped_all_common_ports() -> Vec<(Port, String)> {
         ALL_COMMON_PORTS.map(|s| (s.0, s.1.to_string())).to_vec()
     }
 
@@ -396,11 +396,11 @@ impl DeviceWindowState {
                                     PortScanSubWindowType::Range => {
                                         window_binding.port_scan_subwindow_range_from_validation_err = false;
                                         window_binding.port_scan_subwindow_range_to_validation_err = false;
-                                        let from_port_res = window_binding.port_scan_subwindow_range_from.parse::<u16>();
-                                        let to_port_res = window_binding.port_scan_subwindow_range_to.parse::<u16>();
+                                        let from_port_res = window_binding.port_scan_subwindow_range_from.parse::<Port>();
+                                        let to_port_res = window_binding.port_scan_subwindow_range_to.parse::<Port>();
                                         match (from_port_res, to_port_res) {
                                             (Ok(from_port), Ok(to_port)) => {
-                                                Some((from_port..=to_port).collect::<Vec<u16>>())
+                                                Some((from_port..=to_port).collect::<Vec<Port>>())
                                             },
                                             (Err(_), Ok(_)) => {
                                                 window_binding.port_scan_subwindow_range_from_validation_err = true;
@@ -433,7 +433,7 @@ impl DeviceWindowState {
                                             vec![];
                                         for port in &window_binding.port_scan_subwindow_manual_ports
                                         {
-                                            if let Ok(port_to_add) = port.parse::<u16>() {
+                                            if let Ok(port_to_add) = port.parse::<Port>() {
                                                 ports_to_try.push(port_to_add);
                                             } else {
                                                 are_all_valid = false;
@@ -453,12 +453,16 @@ impl DeviceWindowState {
                                 
                                 if let Some(ports_to_try) = ports_to_try {
                                     scap_ip_ports(
+                                        Arc::clone(&app_context.app_state.network_topology.graph),
+                                        Arc::clone(&app_context.app_state.status_info),
                                         device_ip, 
                                         ports_to_try, 
-                                        window_binding.port_scan_settings_connection_timeout_ms.parse().unwrap_or(1), 
-                                        window_binding.port_scan_settings_should_banner_grab, 
-                                        window_binding.port_scan_settings_should_fuzz, 
-                                        window_binding.port_scan_settings_read_write_timeout_ms.parse().unwrap_or(1)
+                                        ScanIpPortsConfig {
+                                            connection_timeout_ms: window_binding.port_scan_settings_connection_timeout_ms.parse().unwrap_or(1),
+                                            should_banner_grab: window_binding.port_scan_settings_should_banner_grab,
+                                            should_fuzz: window_binding.port_scan_settings_should_fuzz,
+                                            read_write_timeout_ms: window_binding.port_scan_settings_read_write_timeout_ms.parse().unwrap_or(1),
+                                        }
                                     );
                                 }
                             }

@@ -17,7 +17,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::utils::constants::LINE_ENDING;
+use crate::utils::{constants::LINE_ENDING, ip::Port};
 
 lazy_static! {
     pub static ref EGUI_GRAPH_SETTINGS_STYLE: SettingsStyle = SettingsStyle::new()
@@ -41,7 +41,16 @@ pub struct NetworkTopologyNode {
     pub notes: String,
     pub is_localhost: bool, // True => node is a machine that's running this program
     pub hostname: String,
+    pub opened_pors: Vec<PortInfo>,
 }
+#[derive(Debug, Clone)]
+pub struct PortInfo {
+    pub number: Port,
+    pub banner: String,
+    pub fuzzing_results: Vec<String>,
+    pub possible_service_name: String,
+}
+
 impl NetworkTopologyNode {
     pub fn new(ip: IpAddr, notes: String, hostname: Option<String>) -> Self {
         Self::new_internal(ip, notes, false, hostname)
@@ -69,6 +78,7 @@ impl NetworkTopologyNode {
             notes,
             is_localhost,
             hostname: hostname.unwrap_or_default(),
+            opened_pors: vec![],
         }
     }
 }

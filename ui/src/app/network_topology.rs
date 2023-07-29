@@ -17,7 +17,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::utils::{constants::LINE_ENDING, ip::Port};
+use crate::utils::{
+    constants::LINE_ENDING,
+    ip::{BannerGrabResult, FuzzingResults, Port},
+};
 
 lazy_static! {
     pub static ref EGUI_GRAPH_SETTINGS_STYLE: SettingsStyle = SettingsStyle::new()
@@ -36,6 +39,29 @@ lazy_static! {
 }
 
 #[derive(Debug, Clone)]
+pub struct PortInfo {
+    pub number: Port,
+    pub banner: BannerGrabResult,
+    pub fuzzing_results: FuzzingResults,
+    pub possible_service_name: String,
+}
+impl PortInfo {
+    pub fn new(
+        number: Port,
+        banner: BannerGrabResult,
+        fuzzing_results: FuzzingResults,
+        possible_service_name: String,
+    ) -> Self {
+        Self {
+            number,
+            banner,
+            fuzzing_results,
+            possible_service_name,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct NetworkTopologyNode {
     pub ip: IpAddr, // ip == id ; has to be unique
     pub notes: String,
@@ -43,14 +69,6 @@ pub struct NetworkTopologyNode {
     pub hostname: String,
     pub opened_pors: Vec<PortInfo>,
 }
-#[derive(Debug, Clone)]
-pub struct PortInfo {
-    pub number: Port,
-    pub banner: String,
-    pub fuzzing_results: Vec<String>,
-    pub possible_service_name: String,
-}
-
 impl NetworkTopologyNode {
     pub fn new(ip: IpAddr, notes: String, hostname: Option<String>) -> Self {
         Self::new_internal(ip, notes, false, hostname)

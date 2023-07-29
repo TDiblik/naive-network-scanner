@@ -82,7 +82,7 @@ impl DeviceWindowState {
             port_scan_settings_connection_timeout_ms: "50".to_owned(),
             port_scan_settings_should_banner_grab: true,
             port_scan_settings_should_fuzz: false,
-            port_scan_settings_read_write_timeout_ms: "500".to_owned(),
+            port_scan_settings_read_write_timeout_ms: "250".to_owned(),
         }
     }
 
@@ -374,7 +374,7 @@ impl DeviceWindowState {
                                 ui.checkbox(
                                     &mut window_binding.port_scan_settings_should_fuzz,
                                     "Should try fuzzing (could take a while...)",
-                                );
+                                ).on_hover_text("You probably want to set read/write timeout to extremelly small amount of time.");
                             });
 
                             if window_binding.port_scan_settings_should_banner_grab || window_binding.port_scan_settings_should_fuzz {
@@ -457,6 +457,7 @@ impl DeviceWindowState {
                                         Arc::clone(&app_context.app_state.status_info),
                                         device_ip, 
                                         ports_to_try, 
+                                        device_node_index,
                                         ScanIpPortsConfig {
                                             connection_timeout_ms: window_binding.port_scan_settings_connection_timeout_ms.parse().unwrap_or(1),
                                             should_banner_grab: window_binding.port_scan_settings_should_banner_grab,

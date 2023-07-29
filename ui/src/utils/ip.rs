@@ -1,5 +1,5 @@
 use log::info;
-use petgraph::visit::IntoNodeReferences;
+use petgraph::{stable_graph::NodeIndex, visit::IntoNodeReferences};
 use pnet::packet::icmp::IcmpTypes;
 use std::net::IpAddr;
 
@@ -7,7 +7,7 @@ use crate::{
     app::{
         network_topology::{
             NetworkTopology, NetworkTopologyEdge, NetworkTopologyGraph, NetworkTopologyGraphNode,
-            NetworkTopologyNode,
+            NetworkTopologyNode, PortInfo,
         },
         workspace_models::{AppState, StatusInfoRef, StatusMessage},
     },
@@ -232,6 +232,7 @@ pub fn update_hostname_list(
 // TODO: Implement option for multi threading
 // TODO: Implement option to change pc mac address for each ping
 pub type Port = u16;
+pub type BannerGrabResult = Option<String>;
 pub type FuzzingResults = Option<Vec<String>>;
 pub struct ScanIpPortsConfig {
     pub connection_timeout_ms: u64,
@@ -240,18 +241,19 @@ pub struct ScanIpPortsConfig {
     pub read_write_timeout_ms: u64,
 }
 pub fn scap_ip_ports(
-    mut graph_ref: NetworkTopologyGraph,
+    graph_ref: NetworkTopologyGraph,
     status_info_ref: StatusInfoRef,
     ip: IpAddr,
     ports: Vec<Port>,
+    node_index: NodeIndex,
     config: ScanIpPortsConfig,
 ) {
     std::thread::spawn(move || {
         let mut reachable_ports = vec![];
 
         for port in ports {
-            let port_info = is_port_open_using_tcp_stream(ip, port, &config);
-            if !port_info.0 {
+            let port_info_raw = is_port_open_using_tcp_stream(ip, port, &config);
+            if !port_info_raw.0 {
                 AppState::log_to_status_generic(
                     &status_info_ref,
                     StatusMessage::Info(format!("Port {port} is unreachable.")),
@@ -259,14 +261,38 @@ pub fn scap_ip_ports(
                 continue;
             }
 
-            let recognized_port = recognize_port(&port, &port_info.1, &port_info.2);
+            let possible_port_service =
+                recognize_port_service(&port, &port_info_raw.1, &port_info_raw.2);
 
             AppState::log_to_status_generic(
                 &status_info_ref,
                 StatusMessage::Info(format!(
-                    "Port {port} is reachable, possible service guess: {recognized_port}."
+                    "Port {port} is reachable, possible service guess: {possible_port_service}."
                 )),
             );
+
+            let mut graph_lock = graph_ref.lock().unwrap();
+            let node_to_update = graph_lock.node_weight_mut(node_index);
+            if node_to_update.is_none() {
+                AppState::log_to_status_generic(
+                    &status_info_ref,
+                    StatusMessage::Warn(format!(
+                        "Port {port} is reachable, but the node index is unavailable. Unable to save into node. Preemptively finishing scan..."
+                    )),
+                );
+                return;
+            }
+            let node_to_update = node_to_update.unwrap();
+            let mut new_data = node_to_update.data().unwrap().clone();
+            let port_info = PortInfo::new(
+                port,
+                port_info_raw.1.clone(),
+                port_info_raw.2.clone(),
+                possible_port_service,
+            );
+            new_data.opened_pors.push(port_info.clone());
+            node_to_update.set_data(Some(new_data));
+            drop(graph_lock);
 
             reachable_ports.push(port_info);
         }
@@ -274,22 +300,27 @@ pub fn scap_ip_ports(
         AppState::log_to_status_generic(
             &status_info_ref,
             StatusMessage::Info(format!(
-                "Finished scanning. Found {} reachable ports",
-                reachable_ports.len()
+                "Finished scanning. Found {} reachable ports ({})",
+                reachable_ports.len(),
+                reachable_ports
+                    .iter()
+                    .map(|s| s.number.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
             )),
         );
     });
 }
 
 #[allow(unused_variables)]
-fn recognize_port(
+fn recognize_port_service(
     port: &Port,
-    banner: &Option<String>,
+    banner: &BannerGrabResult,
     fuzzing_results: &FuzzingResults,
 ) -> String {
     let possible_port = ALL_COMMON_PORTS.iter().find(|s| s.0 == *port);
 
     // TODO: Implement recognition based on banner (and/or) fuzzing results. Then remove the [allow(unused_variables)]
 
-    possible_port.map(|s| s.1).unwrap_or("unknonw").to_owned()
+    possible_port.map(|s| s.1).unwrap_or("unknown").to_owned()
 }

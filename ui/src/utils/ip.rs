@@ -233,7 +233,13 @@ pub fn update_hostname_list(
 // TODO: Implement option to change pc mac address for each ping
 pub type Port = u16;
 pub type BannerGrabResult = Option<String>;
-pub type FuzzingResults = Option<Vec<String>>;
+#[derive(Debug, Clone)]
+pub struct FuzzingResult {
+    pub command: String,
+    pub result: String,
+    pub result_raw: Vec<u8>,
+}
+pub type FuzzingResults = Option<Vec<FuzzingResult>>;
 pub struct ScanIpPortsConfig {
     pub connection_timeout_ms: u64,
     pub should_banner_grab: bool,

@@ -1,9 +1,6 @@
 use std::{net::IpAddr, sync::Arc};
 
-use eframe::{
-    egui::{self, ScrollArea, TextStyle},
-    epaint::Vec2,
-};
+use eframe::{egui::{self, ScrollArea, TextStyle}, epaint::Vec2};
 use petgraph::stable_graph::NodeIndex;
 use rand::random;
 
@@ -33,6 +30,8 @@ enum PortScanSubWindowType {
     Manual,
 }
 
+type AllCommonPortsParsed = Vec<(Port, String, String)>;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeviceWindowState {
     window_id: egui::Id,
@@ -48,7 +47,7 @@ pub struct DeviceWindowState {
     port_scan_subwindow_range_from_validation_err: bool,
     port_scan_subwindow_range_to: String,
     port_scan_subwindow_range_to_validation_err: bool,
-    port_scan_subwindow_all_common_ports: Vec<(Port, String)>,
+    port_scan_subwindow_all_common_ports: AllCommonPortsParsed,
     port_scan_subwindow_manual_ports: Vec<String>,
     port_scan_subwindow_manual_ports_validation_err: Vec<String>,
     port_scan_settings_connection_timeout_ms: String,
@@ -72,7 +71,7 @@ impl DeviceWindowState {
             subwindow_selected: SubWindowType::Info,
 
             port_scan_subwindow_selected: PortScanSubWindowType::Range,
-            port_scan_subwindow_range_from: "0".to_owned(),
+            port_scan_subwindow_range_from: "1".to_owned(),
             port_scan_subwindow_range_from_validation_err: false,
             port_scan_subwindow_range_to: "1023".to_owned(),
             port_scan_subwindow_range_to_validation_err: false,
@@ -102,8 +101,8 @@ impl DeviceWindowState {
         self.ip
     }
 
-    fn get_mapped_all_common_ports() -> Vec<(Port, String)> {
-        ALL_COMMON_PORTS.map(|s| (s.0, s.1.to_string())).to_vec()
+    fn get_mapped_all_common_ports() -> AllCommonPortsParsed {
+        ALL_COMMON_PORTS.map(|s| (s.0, s.1.to_string(), s.2.to_string())).to_vec()
     }
 
     pub fn render(
@@ -171,14 +170,7 @@ impl DeviceWindowState {
                         SubWindowType::Info => {
                             let graph_lock =
                                 &mut app_context.app_state.network_topology.graph.lock().unwrap();
-                            let node_info = graph_lock.node_weight_mut(device_node_index);
-                            if node_info.is_none() {
-                                app_context.ui_state.device_window_states
-                                    [device_window_state_index]
-                                    .open = false;
-                                return;
-                            }
-                            let node_info = node_info.unwrap(); // safe to unwrap since we handled the none case
+                            let node_info = graph_lock.node_weight_mut(device_node_index).unwrap(); // safe to unwrap since this CANNOT be None;
                             let mut new_node_data = node_info.data().unwrap().clone();
 
                             ui.add_space(DEFAULT_SPACER);
@@ -268,10 +260,9 @@ impl DeviceWindowState {
                                 }
                                 PortScanSubWindowType::AllCommon => {
                                     let mut index_to_delete = None;
-                                    let row_height = ui.text_style_height(&TextStyle::Body) / 999.0; // idk why, but it works
                                     ScrollArea::vertical().auto_shrink([false; 2]).show_rows(
                                         ui,
-                                        row_height,
+                                        ui.text_style_height(&TextStyle::Body) / 999.0, // idk why, but it works
                                         ALL_COMMON_PORTS_LENGHT,
                                         |ui, _| {
                                             // TODO: Every second row should have #202020 as a background color
@@ -284,7 +275,7 @@ impl DeviceWindowState {
                                                     ui.label(port.0.to_string());
                                                     ui.horizontal(|ui| {
                                                         ui.set_width(ui.available_width() * 0.85);
-                                                        ui.label(port.1.clone());
+                                                        ui.label(port.1.clone()).on_hover_text(port.2.clone());
                                                     });
                                                     ui.add_space(ACTION_SPACER);
                                                     if ui.button(TRASH_ICON).clicked() {

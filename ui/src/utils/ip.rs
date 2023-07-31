@@ -267,7 +267,7 @@ pub fn scap_ip_ports(
                 continue;
             }
 
-            let possible_port_service =
+            let (possible_port_service, possible_service_usefull_info) =
                 recognize_port_service(&port, &port_info_raw.1, &port_info_raw.2);
 
             AppState::log_to_status_generic(
@@ -276,37 +276,38 @@ pub fn scap_ip_ports(
                     "Port {port} is reachable, possible service guess: {possible_port_service}."
                 )),
             );
-
-            let mut graph_lock = graph_ref.lock().unwrap();
-            let node_to_update = graph_lock.node_weight_mut(node_index);
-            if node_to_update.is_none() {
+            if config.should_banner_grab {
                 AppState::log_to_status_generic(
                     &status_info_ref,
-                    StatusMessage::Warn(format!(
-                        "Port {port} is reachable, but the node index is unavailable. Unable to save into node. Preemptively finishing scan..."
+                    StatusMessage::Info(format!(
+                        "Port {port} - banner grab result: {:?}",
+                        port_info_raw.1
                     )),
                 );
-                return;
             }
-            let node_to_update = node_to_update.unwrap();
-            let mut new_data = node_to_update.data().unwrap().clone();
-            let port_info = PortInfo::new(
+            if config.should_fuzz {
+                AppState::log_to_status_generic(
+                    &status_info_ref,
+                    StatusMessage::Info(format!(
+                        "Port {port} - fuzzing results: {:?}",
+                        port_info_raw.2
+                    )),
+                );
+            }
+
+            reachable_ports.push(PortInfo::new(
                 port,
                 port_info_raw.1.clone(),
                 port_info_raw.2.clone(),
                 possible_port_service,
-            );
-            new_data.opened_pors.push(port_info.clone());
-            node_to_update.set_data(Some(new_data));
-            drop(graph_lock);
-
-            reachable_ports.push(port_info);
+                possible_service_usefull_info,
+            ));
         }
 
         AppState::log_to_status_generic(
             &status_info_ref,
             StatusMessage::Info(format!(
-                "Finished scanning. Found {} reachable ports ({})",
+                "Finished scanning. Found {} reachable ports ({}). Proceeding to update the node...",
                 reachable_ports.len(),
                 reachable_ports
                     .iter()
@@ -314,6 +315,27 @@ pub fn scap_ip_ports(
                     .collect::<Vec<String>>()
                     .join(", ")
             )),
+        );
+
+        let mut graph_lock = graph_ref.lock().unwrap();
+        let node_to_update = graph_lock.node_weight_mut(node_index);
+        if node_to_update.is_none() {
+            AppState::log_to_status_generic(
+                &status_info_ref,
+                StatusMessage::Warn("Unable to update the node after port scan. The results got destroyed. Sorry :(".to_string()),
+            );
+            return;
+        }
+        let node_to_update = node_to_update.unwrap();
+        let mut new_data = node_to_update.data().unwrap().clone();
+        for opened_port in reachable_ports {
+            new_data.opened_ports.push(opened_port);
+        }
+        node_to_update.set_data(Some(new_data));
+        drop(graph_lock);
+        AppState::log_to_status_generic(
+            &status_info_ref,
+            StatusMessage::Info("Successfully updated the data on the node.".to_string()),
         );
     });
 }
@@ -323,10 +345,12 @@ fn recognize_port_service(
     port: &Port,
     banner: &BannerGrabResult,
     fuzzing_results: &FuzzingResults,
-) -> String {
+) -> (String, Option<String>) {
     let possible_port = ALL_COMMON_PORTS.iter().find(|s| s.0 == *port);
 
     // TODO: Implement recognition based on banner (and/or) fuzzing results. Then remove the [allow(unused_variables)]
 
-    possible_port.map(|s| s.1).unwrap_or("unknown").to_owned()
+    possible_port
+        .map(|s| (s.1.to_string(), Some(s.2.to_string())))
+        .unwrap_or(("unknown".to_string(), None))
 }

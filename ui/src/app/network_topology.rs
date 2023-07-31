@@ -44,6 +44,7 @@ pub struct PortInfo {
     pub banner: BannerGrabResult,
     pub fuzzing_results: FuzzingResults,
     pub possible_service_name: String,
+    pub possible_service_usefull_info: Option<String>,
 }
 impl PortInfo {
     pub fn new(
@@ -51,12 +52,14 @@ impl PortInfo {
         banner: BannerGrabResult,
         fuzzing_results: FuzzingResults,
         possible_service_name: String,
+        possible_service_usefull_info: Option<String>,
     ) -> Self {
         Self {
             number,
             banner,
             fuzzing_results,
             possible_service_name,
+            possible_service_usefull_info,
         }
     }
 }
@@ -67,7 +70,7 @@ pub struct NetworkTopologyNode {
     pub notes: String,
     pub is_localhost: bool, // True => node is a machine that's running this program
     pub hostname: String,
-    pub opened_pors: Vec<PortInfo>,
+    pub opened_ports: Vec<PortInfo>,
 }
 impl NetworkTopologyNode {
     pub fn new(ip: IpAddr, notes: String, hostname: Option<String>) -> Self {
@@ -96,7 +99,7 @@ impl NetworkTopologyNode {
             notes,
             is_localhost,
             hostname: hostname.unwrap_or_default(),
-            opened_pors: vec![],
+            opened_ports: vec![],
         }
     }
 }

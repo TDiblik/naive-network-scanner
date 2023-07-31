@@ -71,6 +71,10 @@ impl AppState {
         new_log_line.push_str(LINE_ENDING);
 
         let mut status_info_lock = status_info_ref.lock().unwrap();
+        if status_info_lock.text.len() > 100_000 {
+            status_info_lock.text = "".to_owned();
+        }
+
         status_info_lock.text.push_str(&new_log_line);
         status_info_lock.scroll_on_next_render = true;
     }

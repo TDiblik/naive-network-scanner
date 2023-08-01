@@ -25,7 +25,8 @@ pub struct WorkspaceContext {
 
 #[derive(Default)]
 pub struct StatusInfo {
-    pub text: String,
+    pub text_to_batch: String,
+    pub text_to_render: String,
     pub scroll_on_next_render: bool,
 }
 pub type StatusInfoRef = Arc<Mutex<StatusInfo>>;
@@ -35,15 +36,6 @@ pub enum StatusMessage {
     Info(String),
     Warn(String),
     Err(String),
-}
-impl From<StatusMessage> for String {
-    fn from(value: StatusMessage) -> Self {
-        match value {
-            StatusMessage::Info(s) => s,
-            StatusMessage::Warn(s) => s,
-            StatusMessage::Err(s) => s,
-        }
-    }
 }
 
 pub struct AppState {
@@ -56,27 +48,32 @@ impl AppState {
     }
 
     pub fn log_to_status_generic(status_info_ref: &StatusInfoRef, info_to_append: StatusMessage) {
-        let mut new_log_line = chrono::Local::now()
-            .format("%Y-%m-%d %H:%M:%S%.3f")
-            .to_string();
-        new_log_line.push_str(": ");
-        let line_to_append: String = info_to_append.clone().into();
-        new_log_line.push_str(&line_to_append);
+        let now = chrono::Local::now();
+        let value_to_append = match info_to_append {
+            StatusMessage::Info(s) => {
+                info!("{s}");
+                s
+            }
+            StatusMessage::Warn(s) => {
+                warn!("{s}");
+                s
+            }
+            StatusMessage::Err(s) => {
+                error!("{s}");
+                s
+            }
+        };
 
-        match info_to_append {
-            StatusMessage::Info(_) => info!("{}", new_log_line),
-            StatusMessage::Warn(_) => warn!("{}", new_log_line),
-            StatusMessage::Err(_) => error!("{}", new_log_line),
-        }
-        new_log_line.push_str(LINE_ENDING);
-
-        let mut status_info_lock = status_info_ref.lock().unwrap();
-        if status_info_lock.text.len() > 100_000 {
-            status_info_lock.text = "".to_owned();
-        }
-
-        status_info_lock.text.push_str(&new_log_line);
-        status_info_lock.scroll_on_next_render = true;
+        status_info_ref
+            .lock()
+            .unwrap()
+            .text_to_batch
+            .push_str(&format!(
+                "{}: {}{}",
+                now.format("%H:%M:%S%.3f"),
+                value_to_append,
+                LINE_ENDING
+            ));
     }
 }
 

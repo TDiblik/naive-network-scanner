@@ -61,6 +61,21 @@ impl Workspace {
             "Initialized new workspace {}!",
             id
         )));
+
+        let logging_thread_arc = Arc::clone(&context.app_state.status_info);
+        std::thread::spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_secs(5));
+
+            let mut status_info_lock = logging_thread_arc.lock().unwrap();
+            if status_info_lock.text_to_render.len() > 75_000 {
+                status_info_lock.text_to_render = "".to_owned();
+            }
+            let text_to_append = status_info_lock.text_to_batch.clone();
+            status_info_lock.text_to_render.push_str(&text_to_append);
+            status_info_lock.scroll_on_next_render = true;
+            status_info_lock.text_to_batch = "".to_owned();
+        });
+
         Self {
             id,
             tabs_context,
@@ -265,10 +280,11 @@ impl WorkspaceContext {
 
     fn render_status_tab(&mut self, ui: &mut egui::Ui) {
         let mut status_info_lock = self.app_state.status_info.lock().unwrap();
-        ui.label(status_info_lock.text.clone());
+        ui.label(status_info_lock.text_to_render.clone());
         if status_info_lock.scroll_on_next_render {
-            ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
             status_info_lock.scroll_on_next_render = false;
+            drop(status_info_lock);
+            ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
         }
     }
 }

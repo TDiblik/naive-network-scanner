@@ -67,13 +67,15 @@ impl Workspace {
             std::thread::sleep(std::time::Duration::from_secs(5));
 
             let mut status_info_lock = logging_thread_arc.lock().unwrap();
-            if status_info_lock.text_to_render.len() > 75_000 {
-                status_info_lock.text_to_render = "".to_owned();
-            }
             let text_to_append = status_info_lock.text_to_batch.clone();
-            status_info_lock.text_to_render.push_str(&text_to_append);
-            status_info_lock.scroll_on_next_render = true;
-            status_info_lock.text_to_batch = "".to_owned();
+            if !text_to_append.is_empty() {
+                if status_info_lock.text_to_render.len() > 75_000 {
+                    status_info_lock.text_to_render = "".to_owned();
+                }
+                status_info_lock.text_to_render.push_str(&text_to_append);
+                status_info_lock.scroll_on_next_render = true;
+                status_info_lock.text_to_batch = "".to_owned();
+            }
         });
 
         Self {

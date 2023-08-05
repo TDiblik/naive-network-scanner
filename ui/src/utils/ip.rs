@@ -329,8 +329,16 @@ pub fn scap_ip_ports(
         let node_to_update = node_to_update.unwrap();
         let mut new_data = node_to_update.data().unwrap().clone();
         for opened_port in reachable_ports {
+            if let Some(index) = new_data
+                .opened_ports
+                .iter()
+                .position(|s| s.number == opened_port.number)
+            {
+                new_data.opened_ports.remove(index);
+            }
             new_data.opened_ports.push(opened_port);
         }
+        new_data.opened_ports.sort_by_key(|s| s.number);
         node_to_update.set_data(Some(new_data));
         drop(graph_lock);
         AppState::log_to_status_generic(

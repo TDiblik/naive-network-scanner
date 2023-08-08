@@ -14,7 +14,7 @@ pub fn user_home_path() -> PathBuf {
 
 pub fn program_root_dir() -> PathBuf {
     let mut root_dir = user_home_path();
-    root_dir.push(".config/teef/");
+    root_dir.push(".config/naive-network-scanner/");
     root_dir
 }
 

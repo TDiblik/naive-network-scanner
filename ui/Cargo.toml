@@ -1,8 +1,9 @@
 [package]
-name = "teef-ui"
+name = "naive-network-scanner"
 version = "0.0.1"
-description = "Tom's Enumeration and Exploitation Framework"
-repository = "https://github.com/TDiblik/teef"
+license-file = "../LICENSE"
+description = "Naive network scanner application"
+repository = "https://github.com/TDiblik/naive-network-scanner"
 authors = ["Tomáš Diblík <dibla.tomas@post.cz>"]
 edition = "2021"
 publish = false

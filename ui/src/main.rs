@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()> {
 
     // TODO: Implement and Open project selector
     // eframe::run_native(
-    //     "TEEF - Project Selector",
+    //     "Naive Network Scanner - Project Selector",
     //     eframe::NativeOptions {
     //         initial_window_size: Some(egui::vec2(550.0, 440.0)),
     //         resizable: false,
@@ -35,7 +35,7 @@ fn main() -> anyhow::Result<()> {
 
     let new_id = uuid::Uuid::new_v4();
     let result = eframe::run_native(
-        &format!("TEEF - Workspace {}", new_id),
+        &format!("Naive Network Scanner - Workspace {}", new_id),
         eframe::NativeOptions {
             initial_window_size: Some(egui::vec2(WORKSPACE_WINDOW_WIDTH, WORKSPACE_WINDOW_HEIGHT)),
             ..Default::default()

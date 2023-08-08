@@ -206,7 +206,9 @@ impl Default for NetworkTopology {
             graph_changes_receiver,
         };
 
-        // TODO: Currentlly, egui_graph crashes for some reason, when I create new graph without nodes and then try to add some, so I decided to create dummy node. Try removing this line when it hits 1.0 / open issue / open PR. I don't want to deal with it rn.
+        // TODO: Currentlly, egui_graph crashes for some reason, when I create new graph without nodes
+        // and then try to add some, so I decided to create dummy node.
+        // Try removing this line when egui_graph hits 1.0 / open issue / open PR. I don't want to deal with it atm.
         NetworkTopology::add_node(
             &mut new_topology.graph,
             NetworkTopologyNode::new(
@@ -277,13 +279,13 @@ impl NetworkTopology {
             .collect()
     }
 
-    // TODO: Spanwing nodes like this is messy, but looks work well enough atm
+    // TODO: Spanwing nodes like this is messy, but looks / works well enough atm. Could be improved.
     pub fn add_node(
         graph: &mut NetworkTopologyGraph,
         new_topology_node: NetworkTopologyNode,
         location: Option<Vec2>,
     ) -> Option<NodeIndex> {
-        let mut rng = rand::thread_rng(); // TODO: could be optimized ? Idk if it's creating a new instance every time :/
+        let mut rng = rand::thread_rng();
         let spawn_location = location.unwrap_or(Vec2::new(
             rng.gen_range(-400.0..400.0),
             rng.gen_range(-400.0..400.0),
@@ -292,7 +294,7 @@ impl NetworkTopology {
         let new_node = egui_graphs::Node::new(spawn_location, new_topology_node.clone())
             .with_label(Self::generate_node_label(&new_topology_node))
             .with_color(if new_topology_node.is_localhost {
-                Color32::from_rgb(238, 108, 77) // TODO: Decide between (238, 108, 77) OR (152, 193, 217) OR (61, 90, 128)
+                Color32::from_rgb(238, 108, 77)
             } else {
                 Color32::from_rgb(200, 200, 200)
             });

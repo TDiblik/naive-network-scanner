@@ -27,7 +27,6 @@ pub fn init() -> anyhow::Result<()> {
     let mut file_path = super::env::program_root_dir();
     file_path.push("log.txt");
 
-    // TODO: Add logging on panics
     let config = Config::builder()
         .appender(
             Appender::builder().build(

@@ -28,7 +28,7 @@ pub const TRASH_ICON: &str = "🗑";
 
 pub const MOST_COMMON_PORTS: [Port; 7] = [13, 22, 23, 80, 443, 8080, 8443];
 
-// TODO: Fill with data from + filter out bullshit:
+// TODO: Fill with data from + filter out pointless ports:
 // https://docs.oracle.com/en/database/oracle/oracle-database/18/rilin/port-numbers-and-protocols-of-oracle-components.html#GUID-D168F70C-BECE-4F9A-B616-D9103A35F1FF
 // https://docs.oracle.com/cd/E36909_01/core.1111/e10105/portnums.htm
 // https://developer.hashicorp.com/consul/docs/agent/config/config-files#ports

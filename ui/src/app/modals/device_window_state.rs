@@ -262,7 +262,7 @@ impl DeviceWindowState {
                                     let mut index_to_delete = None;
                                     ScrollArea::vertical().auto_shrink([false; 2]).show_rows(
                                         ui,
-                                        ui.text_style_height(&TextStyle::Body) / 999.0, // idk why, but it works
+                                        ui.text_style_height(&TextStyle::Body) / 999.0,
                                         ALL_COMMON_PORTS_LENGHT,
                                         |ui, _| {
                                             // TODO: Every second row should have #202020 as a background color
@@ -458,6 +458,8 @@ impl DeviceWindowState {
                                     );
                                 }
                             }
+                            
+                            // ui.button("Show results")
                         }
                         SubWindowType::Actions => {
                             ui.vertical_centered_justified(|ui| {

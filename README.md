@@ -4,7 +4,7 @@
 
 I started this project to build a penetration testing tool, even though I lacked experience in the field.
 As I developed it (and expanded my pen-testing skills), I realized that what I was building, wasn't going to help while penetration testing, at all.
-So, I decided to reshape this into solely a naive network scanning tool and abandon it.
+So, I decided to reshape this into solely a naive network scanning tool and keep it as is :D
 
 ### What works?
 

@@ -92,27 +92,21 @@ impl eframe::App for Workspace {
         egui::CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.))
             .show(ctx, |ui| {
-                // Top menu bars
                 egui::menu::bar(ui, |ui| {
                     FileMenuButton::render(ui);
                     ViewMenuButton::render(ui, self);
                 });
 
-                // "Add new device" modal window
                 AddNewDeviceWindowState::render(ctx, &mut self.context);
-                // "Add this computer" info modal window
                 GenericInfoWindowState::render(
                     ctx,
                     &mut self.context.ui_state.add_this_computer_window_state,
                 );
-                // "IP Range Scanning options" model window
                 ScanIpRangeWindowState::render(ctx, &mut self.context);
-                // Device windows
                 for i in 0..self.context.ui_state.device_window_states.len() {
                     DeviceWindowState::render(ctx, &mut self.context, i);
                 }
 
-                // Docking
                 let mut dock_style = egui_dock::Style::from_egui(ui.style());
                 dock_style.separator.extra = 50.0;
                 egui_dock::DockArea::new(&mut self.tabs_context.tab_tree)

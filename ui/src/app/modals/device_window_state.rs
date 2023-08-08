@@ -1,6 +1,7 @@
 use std::{net::IpAddr, sync::Arc};
 
 use eframe::{egui::{self, ScrollArea, TextStyle}, epaint::Vec2};
+use egui_extras::{TableBuilder, Column};
 use petgraph::stable_graph::NodeIndex;
 use rand::random;
 
@@ -54,6 +55,10 @@ pub struct DeviceWindowState {
     port_scan_settings_should_banner_grab: bool,
     port_scan_settings_should_fuzz: bool,
     port_scan_settings_read_write_timeout_ms: String,
+    
+    should_show_port_scan_window: bool,
+    scan_results_window_id: egui::Id,
+    scan_results_window_id_raw: u64
 }
 impl DeviceWindowState {
     pub fn new(ip: IpAddr, node_index: NodeIndex) -> Self {
@@ -61,6 +66,7 @@ impl DeviceWindowState {
         // - because if I fuck up something, and there happen to be two same ips (should never happen), the window will still work
         // - I want to be able to open multiple windows for the same device at once.
         let window_id_raw = random::<u64>();
+        let scan_results_window_id_raw = random::<u64>();
         Self {
             window_id: egui::Id::new(window_id_raw),
             window_id_raw,
@@ -82,6 +88,10 @@ impl DeviceWindowState {
             port_scan_settings_should_banner_grab: true,
             port_scan_settings_should_fuzz: false,
             port_scan_settings_read_write_timeout_ms: "250".to_owned(),
+            
+            should_show_port_scan_window: false,
+            scan_results_window_id: egui::Id::new(scan_results_window_id_raw),
+            scan_results_window_id_raw
         }
     }
 
@@ -116,6 +126,8 @@ impl DeviceWindowState {
             device_ip,
             device_node_index,
             mut should_show_window_internal,
+            should_show_port_scan_window,
+            scan_results_window_id
         ) = {
             let current_window = app_context
                 .ui_state
@@ -128,10 +140,120 @@ impl DeviceWindowState {
                 current_window.ip,
                 current_window.node_index,
                 current_window.open,
+                current_window.should_show_port_scan_window,
+                current_window.scan_results_window_id
             )
         };
         if !should_show_window_internal {
             return;
+        }
+        
+        if should_show_port_scan_window {
+            egui::Window::new(format!("Port scan results - {}", device_ip))
+                .id(scan_results_window_id)
+                .collapsible(true)
+                .default_pos(DEFAULT_WINDOW_STARTING_POS)
+                .resizable(true)
+                .min_height(500.0)
+                .open(
+                    &mut app_context
+                        .ui_state
+                        .device_window_states
+                        .get_mut(device_window_state_index)
+                        .unwrap()
+                        .should_show_port_scan_window
+                )
+                .show(egui_context, |ui| {
+                    let graph_lock =
+                        &mut app_context.app_state.network_topology.graph.lock().unwrap();
+                    let node_info = graph_lock.node_weight_mut(device_node_index).unwrap(); // safe to unwrap since this CANNOT be None;
+                    let mut new_node_data = node_info.data().unwrap().clone();
+
+                    let mut index_to_delete = None;
+
+                    ScrollArea::horizontal().show(ui, |ui| {
+                        let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
+                        let table = TableBuilder::new(ui)
+                            .striped(true)
+                            .resizable(true)
+                            .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                            .column(Column::auto())
+                            .column(Column::initial(100.0).range(40.0..=300.0))
+                            .column(Column::initial(100.0).at_least(40.0).resizable(true))
+                            .column(Column::initial(100.0).at_least(40.0).resizable(true))
+                            .column(Column::remainder())
+                            .min_scrolled_height(0.0);
+
+                        table.header(20.0, |mut header| {
+                            header.col(|ui| {
+                                ui.strong("Port");
+                            });
+                            header.col(|ui| {
+                                ui.strong("Possible service");
+                            });
+                            header.col(|ui| {
+                                ui.strong("Banner");
+                            });
+                            header.col(|ui| {
+                                ui.strong("Fuzzing results");
+                            });
+                            header.col(|ui| {
+                                ui.strong("Actions");
+                            });
+                        })
+                        .body(|mut body| {
+                            for (i, port) in new_node_data.opened_ports.iter().enumerate() {
+                                body.row(text_height, |mut row| {
+                                    row.col(|ui| {
+                                        ui.label(port.number.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(port.possible_service_name.clone()).on_hover_text(port.possible_service_usefull_info.clone().unwrap_or("".to_string()));
+                                    });
+                                    row.col(|ui| {
+                                        match port.banner.clone() {
+                                            Some(banner) if !banner.is_empty() => {
+                                                ui.label("found").on_hover_text(banner);
+                                            }
+                                            _ => {
+                                                ui.label("not found");
+                                            }
+                                        }
+                                    });
+                                    row.col(|ui| {
+                                        match port.fuzzing_results.clone() {
+                                            Some(fuzzing_results) if !fuzzing_results.is_empty() => {
+                                                let popup_text = fuzzing_results
+                                                        .iter()
+                                                        .map(
+                                                            |s| if !s.result_raw.is_empty() {
+                                                                format!("\"{}\" => \n{}\n--------\n", s.command.trim_end(), s.result)
+                                                            } else {
+                                                                "".to_string()
+                                                            }
+                                                        )
+                                                        .collect::<String>();
+                                                ui.label("found").on_hover_text(popup_text);
+                                            },
+                                            _ => {
+                                                ui.label("not found");
+                                            }
+                                        }
+                                    });
+                                    row.col(|ui| {
+                                        if ui.button(TRASH_ICON).clicked() {
+                                            index_to_delete = Some(i);
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                        if let Some(index_to_delete) = index_to_delete {
+                            new_node_data.opened_ports.remove(index_to_delete);
+                        }
+                        node_info.set_data(Some(new_node_data));
+                    });
+                });
         }
 
         egui::Window::new(format!("Device - {}", device_ip))
@@ -459,7 +581,10 @@ impl DeviceWindowState {
                                 }
                             }
                             
-                            // ui.button("Show results")
+                            ui.add_space(ACTION_SPACER);
+                            if ui.button("Show results").clicked() {
+                                window_binding.should_show_port_scan_window = true;
+                            }
                         }
                         SubWindowType::Actions => {
                             ui.vertical_centered_justified(|ui| {
@@ -484,9 +609,9 @@ impl DeviceWindowState {
             });
 
         // At this point, id is no longer guaranteed to be valid.
-        let Some(possibly_window_still_exists) = app_context.ui_state.device_window_states.get_mut(device_window_state_index) else {
+        let Some(possible_window_ref) = app_context.ui_state.device_window_states.get_mut(device_window_state_index) else {
             return;
         };
-        possibly_window_still_exists.open &= should_show_window_internal;
+        possible_window_ref.open &= should_show_window_internal;
     }
 }
